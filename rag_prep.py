@@ -2,14 +2,17 @@ import httpx
 import chromadb
 import os
 import time
+from dotenv import load_dotenv
+import os
 
+load_dotenv() # Эта команда читает ваш .env файл
+
+# Теперь код может использовать ключи
+API_KEY= os.getenv("API_KEY")
 # --- Конфигурация API (из документа) ---
-API_KEY = "sk-roG30usRr0TLCHAADks6lw"  #
 BASE_URL = "https://openai-hub.neuraldeep.tech"  #
-EMBEDDING_MODEL = "text-embedding"  #
+EMBEDDING_MODEL = "text-embedding-3-small"
 
-
-# ----------------------------------------
 
 def get_embedding_from_api(text: str, client: httpx.Client) -> list[float]:
     """

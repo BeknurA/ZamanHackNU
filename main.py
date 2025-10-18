@@ -6,12 +6,18 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
+from dotenv import load_dotenv
+import os
 
+load_dotenv() # Эта команда читает ваш .env файл
+
+# Теперь код может использовать ключи
+API_KEY = os.getenv("API_KEY")
 # --- Конфигурация API (из документа) ---
-API_KEY = "sk-roG30usRr0TLCHAADks6lw"  #
+ #
 BASE_URL = "https://openai-hub.neuraldeep.tech"  #
-LLM_MODEL = "gpt-40-mini"  #
-EMBEDDING_MODEL = "text-embedding"  #
+LLM_MODEL = "gpt-4o-mini"  #
+EMBEDDING_MODEL = "text-embedding-3-small"
 # ----------------------------------------
 
 # --- Инициализация ---
