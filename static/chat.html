@@ -6,11 +6,8 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Zaman AI Assistant</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com" rel="preconnect" />
-    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <script>
-        // Конфигурация Tailwind CSS для вашего дизайна
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -24,17 +21,13 @@
                         "text-dark": "#ffffff",
                         "subtle-light": "#f3f4f6",
                         "subtle-dark": "#1b2837",
-                        "placeholder-light": "#6b7280",
-                        "placeholder-dark": "#9ca3af"
                     },
                     fontFamily: { "display": ["Manrope", "sans-serif"] },
-                    borderRadius: { "DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px" },
                 },
             },
         }
     </script>
     <style>
-        /* Стили для скроллбара и плавных переходов */
         #chat-window::-webkit-scrollbar {
             width: 8px;
         }
@@ -44,52 +37,165 @@
             border-radius: 4px;
         }
 
-        .transition-all {
-            transition: all 0.3s ease-in-out;
+        /* Анимация печати */
+        .typing-indicator {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background-color: #2D9A86;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Плавное появление сообщений */
+        .message-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Стили для быстрых кнопок */
+        .quick-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .quick-btn {
+            transition: all 0.2s ease;
         }
     </style>
 </head>
 
 <body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
-
     <div class="flex flex-col min-h-screen">
         <header
-            class="flex items-center justify-between px-6 py-4 border-b border-subtle-light/80 dark:border-subtle-dark/50">
+            class="flex items-center justify-between px-6 py-4 border-b border-subtle-light/80 dark:border-subtle-dark/50 bg-white dark:bg-background-dark shadow-sm">
             <div class="flex items-center gap-4">
-                <img src="/static/images/Logo-colors.svg" alt="Nova Bank Logo" class="h-50 w-50">
+                <a href="/" class="hover:opacity-80 transition-opacity">
+                    <img src="/static/images/Logo-colors.svg" alt="Zaman Bank Logo" class="h-12">
+                </a>
+                <div class="flex flex-col">
+                    <span class="text-sm font-semibold">Zaman AI Assistant</span>
+                    <span class="text-xs text-gray-500">Ваш финансовый друг 24/7</span>
+                </div>
             </div>
-            <div class="w-10 h-10 bg-center bg-no-repeat bg-cover rounded-full"
-                style='background-image: url("https://i.pravatar.cc/40?u=demo_user");'></div>
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle"
+                    class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    🌙
+                </button>
+                <div class="w-10 h-10 bg-center bg-no-repeat bg-cover rounded-full border-2 border-primary"
+                    style='background-image: url("https://i.pravatar.cc/40?u=aigerim");'></div>
+            </div>
         </header>
 
         <main class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
             <div class="w-full max-w-2xl mx-auto flex flex-col items-center text-center">
-
                 <div id="initial-prompt" class="w-full">
-                    <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Спросите меня о чем угодно</h2>
+                    <div class="mb-6">
+                        <div class="text-6xl mb-4">🤖</div>
+                        <h2 class="text-3xl font-bold tracking-tight sm:text-4xl mb-4">Спросите меня о чем угодно</h2>
+                        <p class="mt-4 text-gray-600 dark:text-gray-400 max-w-lg mx-auto">
+                            Я помогу разобраться с финансами, подберу исламские продукты и просто поддержу в трудную
+                            минуту
+                        </p>
+                    </div>
                 </div>
             </div>
         </main>
 
         <section id="chat-interface" class="flex-1 w-full max-w-3xl mx-auto flex flex-col h-full hidden">
-            <div id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-4">
-                </div>
-            <form id="chat-form" class="p-4 border-t border-subtle-light dark:border-subtle-dark bg-background-light dark:bg-background-dark">
-                <div class="flex gap-2">
+            <div id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900"></div>
+
+            <form id="chat-form"
+                class="p-4 border-t border-subtle-light dark:border-subtle-dark bg-background-light dark:bg-background-dark">
+                <div class="flex gap-2 mb-3">
                     <input type="text" id="chat-input" placeholder="Введите ваше сообщение..."
-                           class="flex-1 p-3 border border-subtle-light dark:border-subtle-dark rounded-lg bg-subtle-light dark:bg-subtle-dark focus:ring-primary focus:border-primary">
-                    <button type="submit"
-                            class="px-4 py-2 bg-primary text-text-dark rounded-lg font-semibold hover:bg-primary/90 transition-colors">
+                        class="flex-1 p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        autocomplete="off">
+                    <button type="submit" id="send-button"
+                        class="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         Отправить
                     </button>
+                </div>
+
+                <div class="flex gap-2 mb-3">
                     <button type="button" id="analyze-button"
-                            class="px-4 py-2 bg-accent text-primary rounded-lg font-semibold hover:bg-accent/90 transition-colors">
-                        Загрузить выписку
+                        class="flex-1 px-4 py-2 bg-accent text-primary rounded-lg font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50">
+                        📊 Загрузить выписку
+                    </button>
+                    <button type="button" id="goal-button"
+                        class="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition-colors disabled:opacity-50">
+                        🎯 Предложить цель
+                    </button>
+                </div>
+
+                <!-- Быстрые кнопки -->
+                <div id="quick-actions" class="flex flex-wrap gap-2">
+                    <button type="button"
+                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
+                        data-message="Как мне сэкономить на кафе и ресторанах?">
+                        💰 Сэкономить на кафе
+                    </button>
+                    <button type="button"
+                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
+                        data-message="Что такое Мурабаха? Объясни простыми словами">
+                        📚 Что такое Мурабаха?
+                    </button>
+                    <button type="button"
+                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
+                        data-message="Посоветуй продукт для инвестиций">
+                        📈 Инвестиции
+                    </button>
+                    <button type="button"
+                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
+                        data-message="Как мне избавиться от долгов?">
+                        🎯 Погасить долги
+                    </button>
+                    <button type="button"
+                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
+                        data-message="Сравни мои траты с другими клиентами">
+                        📊 Сравнить с другими
                     </button>
                 </div>
             </form>
         </section>
-
     </div>
 
     <script>
@@ -99,32 +205,109 @@
             const chatWindow = document.getElementById('chat-window');
             const chatForm = document.getElementById('chat-form');
             const chatInput = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-button');
             const analyzeButton = document.getElementById('analyze-button');
+            const goalButton = document.getElementById('goal-button');
+            const quickButtons = document.querySelectorAll('.quick-btn');
+            const themeToggle = document.getElementById('theme-toggle');
 
-            // Имитация Session ID
             const sessionId = 'user_' + Math.random().toString(36).substring(2, 9);
+            let isTyping = false;
+            let analysisLoaded = false;
 
-            // Показываем интерфейс чата (поскольку это /chat страница)
+            // Переключение темы
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+                localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            });
+
+            // Загрузка сохраненной темы
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeToggle.textContent = '☀️';
+            }
+
+            // Показываем интерфейс чата
             initialPrompt.classList.add('hidden');
             chatInterface.classList.remove('hidden');
 
-            function appendMessage(role, content) {
+            function appendMessage(role, content, isHTML = false) {
                 const messageElement = document.createElement('div');
                 const isUser = role === 'user';
+                const isSystem = role === 'system';
 
-                messageElement.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`;
+                messageElement.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 message-enter`;
+
+                let bgClass, textClass, icon, iconBg;
+                if (isUser) {
+                    bgClass = 'bg-primary text-white rounded-tr-none';
+                    icon = '👤';
+                    iconBg = 'bg-primary/20';
+                } else if (isSystem) {
+                    bgClass = 'bg-yellow-100 dark:bg-yellow-900 text-gray-800 dark:text-gray-200 rounded-none border-l-4 border-yellow-500';
+                    icon = '⚙️';
+                    iconBg = 'bg-yellow-200 dark:bg-yellow-800';
+                } else {
+                    bgClass = 'bg-white dark:bg-gray-800 text-text-light dark:text-text-dark rounded-tl-none border border-gray-200 dark:border-gray-700';
+                    icon = '🤖';
+                    iconBg = 'bg-primary/10';
+                }
+
+                const contentFormatted = isHTML ? content : content.replace(/\n/g, '<br>');
+
                 messageElement.innerHTML = `
-                    <div class="max-w-xs md:max-w-md lg:max-w-lg ${isUser ? 'bg-primary text-white rounded-tr-none' : 'bg-subtle-light dark:bg-subtle-dark text-text-light dark:text-text-dark rounded-tl-none'} p-3 rounded-xl shadow-md transition-all duration-300 ease-in-out">
-                        ${content.replace(/\n/g, '<br>')}
+                    <div class="max-w-xs md:max-w-md lg:max-w-lg ${bgClass} p-4 rounded-xl shadow-md">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full ${iconBg} flex items-center justify-center text-lg">
+                                ${icon}
+                            </div>
+                            <div class="flex-1 text-sm leading-relaxed">${contentFormatted}</div>
+                        </div>
                     </div>
                 `;
                 chatWindow.appendChild(messageElement);
-                chatWindow.scrollTop = chatWindow.scrollHeight; // Прокрутка вниз
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+
+            function showTypingIndicator() {
+                const indicator = document.createElement('div');
+                indicator.id = 'typing-indicator';
+                indicator.className = 'flex justify-start mb-4';
+                indicator.innerHTML = `
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl rounded-tl-none shadow-md border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                🤖
+                            </div>
+                            <div class="typing-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                chatWindow.appendChild(indicator);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+
+            function hideTypingIndicator() {
+                const indicator = document.getElementById('typing-indicator');
+                if (indicator) indicator.remove();
             }
 
             async function sendMessage(message) {
+                if (isTyping || !message.trim()) return;
+
                 appendMessage('user', message);
                 chatInput.value = '';
+                isTyping = true;
+                sendButton.disabled = true;
+                sendButton.textContent = '...';
+
+                showTypingIndicator();
 
                 try {
                     const response = await fetch('/api/chat', {
@@ -133,20 +316,29 @@
                         body: JSON.stringify({ session_id: sessionId, message: message }),
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                     const data = await response.json();
+                    hideTypingIndicator();
                     appendMessage('assistant', data.content);
                 } catch (error) {
-                    console.error('Ошибка отправки сообщения:', error);
-                    appendMessage('assistant', 'Извините, произошла ошибка на стороне сервера. Попробуйте еще раз.');
+                    console.error('Ошибка:', error);
+                    hideTypingIndicator();
+                    appendMessage('assistant', 'Извините, произошла ошибка. Попробуйте еще раз через минуту.');
+                } finally {
+                    isTyping = false;
+                    sendButton.disabled = false;
+                    sendButton.textContent = 'Отправить';
                 }
             }
 
             async function analyzeTransactions() {
-                appendMessage('system', '🤖 Анализирую финансовую выписку и загружаю персональный контекст...');
+                if (isTyping) return;
+
+                appendMessage('system', '🤖 Анализирую вашу финансовую выписку и загружаю персональный контекст...');
+                isTyping = true;
+                analyzeButton.disabled = true;
+                analyzeButton.textContent = '⏳ Загрузка...';
 
                 try {
                     const response = await fetch('/api/analyze', {
@@ -155,40 +347,99 @@
                         body: JSON.stringify({ session_id: sessionId }),
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                     const data = await response.json();
-                    // Выводим только часть для пользователя
-                    const userFacingSummary = `✅ **Выписка загружена!**\n\nЯ проанализировал ваши финансы:\n- ${data.summary.split('\n\n')[1]}`;
+                    const lines = data.summary.split('\n\n');
+                    const userSummary = lines.length > 1 ? lines[1] : lines[0];
 
-                    appendMessage('assistant', userFacingSummary);
-
+                    appendMessage('assistant', `✅ Выписка загружена!\n\n${userSummary}\n\nТеперь я могу дать персонализированные советы. О чем хотите поговорить?`);
+                    analysisLoaded = true;
+                    analyzeButton.textContent = '✓ Выписка загружена';
+                    goalButton.disabled = false;
                 } catch (error) {
-                    console.error('Ошибка анализа транзакций:', error);
-                    appendMessage('assistant', '⚠️ Не удалось загрузить выписку. Проверьте логи сервера.');
+                    console.error('Ошибка анализа:', error);
+                    appendMessage('assistant', '⚠️ Не удалось загрузить выписку. Проверьте подключение к серверу.');
+                    analyzeButton.textContent = '📊 Загрузить выписку';
+                    analyzeButton.disabled = false;
+                } finally {
+                    isTyping = false;
                 }
             }
 
+            async function suggestGoal() {
+                if (isTyping) return;
+
+                if (!analysisLoaded) {
+                    appendMessage('assistant', '⚠️ Сначала загрузите выписку, чтобы я мог проанализировать вашу ситуацию и предложить подходящую цель.');
+                    return;
+                }
+
+                appendMessage('system', '🎯 Анализирую вашу финансовую ситуацию и подбираю оптимальную цель...');
+                isTyping = true;
+                goalButton.disabled = true;
+
+                try {
+                    const response = await fetch('/api/suggest-goal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sessionId }),
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                    const data = await response.json();
+                    appendMessage('assistant', data.formatted_message);
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    appendMessage('assistant', '⚠️ Произошла ошибка при подборе цели. Попробуйте еще раз.');
+                } finally {
+                    isTyping = false;
+                    goalButton.disabled = false;
+                }
+            }
+
+            // Обработчики событий
             chatForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 const message = chatInput.value.trim();
-                if (message) {
+                if (message && !isTyping) {
                     sendMessage(message);
                 }
             });
 
             analyzeButton.addEventListener('click', analyzeTransactions);
+            goalButton.addEventListener('click', suggestGoal);
 
-            // Приветственное сообщение от ассистента при входе
-            appendMessage('assistant',
-                '**Сәлеметсіз бе!** Я Zaman AI, ваш персональный финансовый ассистент исламского банка.\n\n' +
-                'Чтобы я мог дать вам по-настоящему полезный совет, начните с нажатия на кнопку **"Загрузить выписку"**.'
-            );
+            // Быстрые кнопки
+            quickButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const message = this.getAttribute('data-message');
+                    if (message && !isTyping) {
+                        sendMessage(message);
+                    }
+                });
+            });
+
+            // Enter для отправки, Shift+Enter для новой строки
+            chatInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    chatForm.dispatchEvent(new Event('submit'));
+                }
+            });
+
+            // Приветственное сообщение
+            setTimeout(() => {
+                appendMessage('assistant',
+                    'Сәлеметсіз бе! Я Zaman AI, ваш персональный финансовый друг.\n\n' +
+                    'Я здесь не только для рекомендаций по продуктам, но и чтобы помочь вам чувствовать себя увереннее в финансовых вопросах.\n\n' +
+                    '💡 Начните с кнопки "📊 Загрузить выписку", и я проанализирую вашу ситуацию.\n\n' +
+                    'Или выберите один из быстрых вопросов ниже ⬇️'
+                );
+            }, 500);
         });
     </script>
-
 </body>
 
 </html>

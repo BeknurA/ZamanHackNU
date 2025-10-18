@@ -9,20 +9,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Dict, Any, List
 from dotenv import load_dotenv
 import threading
+from datetime import datetime
+from goals_habits import GoalsHabitsManager
 
 load_dotenv()
 
-# --- КОНФИГУРАЦИЯ БЭКЕНДА И API ---
+# Инициализируем менеджер целей
+goals_manager = GoalsHabitsManager()
+
+# --- КОНФИГУРАЦИЯ ---
 API_KEY = os.getenv("API_KEY")
 BASE_URL = "https://openai-hub.neuraldeep.tech"
 LLM_MODEL = "gpt-4o-mini"
 EMBEDDING_MODEL = "text-embedding-3-small"
-# -----------------------------------
 
-# --- Инициализация FastAPI ---
+# --- FastAPI ---
 app = FastAPI(title="Zaman Bank AI Assistant Backend")
 
 app.add_middleware(
@@ -33,95 +37,119 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- КОНФИГУРАЦИЯ СТАТИКИ И ШАБЛОНОВ ---
 app.mount("/static", StaticFiles(directory="static"), name="static")
 INDEX_HTML_PATH = "./static/index.html"
 CHAT_HTML_PATH = "./static/chat.html"
-# ---------------------------------------
 
 USER_STATE_CACHE: Dict[str, Dict[str, Any]] = {}
 http_client = httpx.AsyncClient(timeout=60.0)
 
-# --- Инициализация ChromaDB (RAG) ---
+# --- ChromaDB ---
 try:
     db_client = chromadb.PersistentClient(path="./zaman_db")
     collection = db_client.get_collection(name="zaman_products")
-    print("✅ Успешно подключено к ChromaDB.")
+    print("✅ ChromaDB подключена.")
 except Exception as e:
-    print(f"⚠️ Критическая ошибка: Не удалось загрузить ChromaDB. Запустите rag_prep.py. Ошибка: {e}")
+    print(f"⚠️ Ошибка ChromaDB: {e}")
     collection = None
 
 
-# --- ЗАГРУЗКА ПЕРСОНАЛИЗИРОВАННОГО КОНТЕКСТА КЛИЕНТА ---
-def load_personalized_client_context() -> str:
-    """Загружает статический профиль клиента (Айгерим) из RAG JSON-файла."""
+# --- ЗАГРУЗКА ДАННЫХ ---
+def load_json_safe(filepath: str, default: Any = None) -> Any:
+    """Безопасная загрузка JSON с обработкой ошибок"""
     try:
-        # ===== ИСПРАВЛЕННЫЙ ПУТЬ ↓ =====
-        with open("data/zaman_personalized_rag_data.json", "r", encoding="utf-8") as f:
-            data = json.load(f)
-            client_profile = next(item for item in data if item.get("id") == 0)
+        with open(filepath, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"⚠️ Файл не найден: {filepath}")
+        return default
+    except json.JSONDecodeError as e:
+        print(f"⚠️ Ошибка JSON в {filepath}: {e}")
+        return default
 
-            details = client_profile.get("client_details", {})
-            summary = client_profile.get("financial_summary_kzt", {})
 
-            context_str = (
-                f"Клиент: {details.get('name', 'N/A')}, Возраст: {details.get('age', 'N/A')}, Город: {details.get('city', 'N/A')}. "
-                f"Текущий неисламский продукт: {details.get('current_product', 'N/A')}. "
-                f"Ежемесячный доход: {summary.get('monthly_salary_in_kzt', 'N/A')} KZT. "
-                f"Ежемесячные платежи по займам: {summary.get('loan_payment_out_avg', 'N/A')} KZT. "
-                f"Главный потенциал для продаж (Upsell): {', '.join(summary.get('key_sales_opportunities', []))}."
-            )
-            return context_str
-    except (FileNotFoundError, IndexError):
-        print("❌ КРИТИЧЕСКАЯ ОШИБКА: data/zaman_personalized_rag_data.json не найден.")
-        return "Статическая информация о клиенте недоступна."
-    except Exception as e:
-        print(f"⚠️ Ошибка при загрузке персонализированного контекста: {e}")
-        return "Статическая информация о клиенте недоступна."
+def load_personalized_client_context() -> str:
+    """Загружает профиль клиента"""
+    data = load_json_safe("data/zaman_personalized_rag_data.json", [])
+    if not data:
+        return "Информация о клиенте недоступна."
+    
+    try:
+        client_profile = next(item for item in data if item.get("id") == 0)
+        details = client_profile.get("client_details", {})
+        summary = client_profile.get("financial_summary_kzt", {})
+        
+        return (
+            f"Клиент: {details.get('name')}, {details.get('age')} лет, {details.get('city')}. "
+            f"Статус: {details.get('status')}. "
+            f"Текущий продукт: {details.get('current_product')}. "
+            f"Средний баланс: {details.get('avg_monthly_balance_kzt')} KZT. "
+            f"Ежемесячный доход: {summary.get('monthly_salary_in_kzt')} KZT. "
+            f"Платежи по займам: {summary.get('loan_payment_out_avg')} KZT/мес."
+        )
+    except (StopIteration, KeyError, TypeError):
+        return "Информация о клиенте недоступна."
+
+
+def load_benchmark_data() -> str:
+    """Загружает бенчмарки"""
+    benchmarks = load_json_safe("data/zaman_benchmark_data.json", [])
+    if not benchmarks:
+        return "Сравнительная аналитика недоступна."
+    
+    formatted = []
+    for item in benchmarks:
+        top_spends = ", ".join([f"{k} ({v:.0f} KZT)" for k, v in item.get("top_spending_categories", {}).items()])
+        goals = ", ".join(item.get("common_goals", []))
+        
+        formatted.append(
+            f"СЕГМЕНТ: {item['segment_name']} | "
+            f"Средний доход: {item['avg_monthly_income_kzt']:.0f} KZT. "
+            f"Топ-траты: {top_spends}. "
+            f"Цели: {goals}. "
+            f"ИНСАЙТ: {item['motivational_insight']}"
+        )
+    
+    return "\n\n---\n\n".join(formatted)
+
+
+# --- Эмоциональный интеллект бота ---
+def detect_emotional_state(message: str) -> str:
+    """Определяет эмоциональное состояние из сообщения"""
+    stress_keywords = ["стресс", "переживаю", "волнуюсь", "тревожно", "нервничаю", "устал", "проблем"]
+    positive_keywords = ["спасибо", "отлично", "замечательно", "рад", "благодарен"]
+    
+    msg_lower = message.lower()
+    
+    if any(word in msg_lower for word in stress_keywords):
+        return "stressed"
+    if any(word in msg_lower for word in positive_keywords):
+        return "positive"
+    
+    return "neutral"
+
+
+def get_wellness_advice() -> str:
+    """Советы по борьбе со стрессом без трат"""
+    tips = [
+        "💚 Попробуйте бесплатную медитацию: приложение 'Insight Timer' предлагает тысячи бесплатных сессий на русском языке.",
+        "🚶 Прогулка в парке — доказанный способ снизить кортизол (гормон стресса) на 25%.",
+        "📝 Ведение финансового дневника помогает снизить тревожность на 30% (исследование Cambridge University).",
+        "☕ Встретьтесь с другом за чашкой чая дома — социальная поддержка важнее, чем дорогие развлечения.",
+        "🧘 Практика благодарности: каждый вечер записывайте 3 вещи, за которые вы благодарны сегодня.",
+    ]
+    import random
+    return random.choice(tips)
 
 
 STATIC_CLIENT_PROFILE = load_personalized_client_context()
-if "недоступна" not in STATIC_CLIENT_PROFILE:
-    print("👤 Статический профиль клиента загружен для персонализации.")
-
-
-# --- ЗАГРУЗКА СРАВНИТЕЛЬНОЙ АНАЛИТИКИ (БЕНЧМАРКИ) ---
-def load_benchmark_data() -> str:
-    """Загружает данные для сравнительной аналитики (бенчмарков) из JSON-файла."""
-    try:
-        # ===== ИСПРАВЛЕННЫЙ ПУТЬ ↓ =====
-        with open("data/zaman_benchmark_data.json", "r", encoding="utf-8") as f:
-            benchmarks = json.load(f)
-            formatted_benchmarks = []
-            for item in benchmarks:
-                top_spends = ", ".join([f"{k} ({v:.0f} KZT)" for k, v in item["top_spending_categories"].items()])
-                goals = ", ".join(item["common_goals"])
-
-                formatted_benchmarks.append(
-                    f"СЕГМЕНТ: {item['segment_name']} | Средний Доход: {item['avg_monthly_income_kzt']:.0f} KZT. "
-                    f"Топ-траты: {top_spends}. "
-                    f"Типичные Цели: {goals}. "
-                    f"ГОТОВЫЙ ВЫВОД ДЛЯ МОТИВАЦИИ: {item['motivational_insight']}"
-                )
-
-            return "\n\n---\n\n".join(formatted_benchmarks)
-
-    except FileNotFoundError:
-        print("⚠️ ПРЕДУПРЕЖДЕНИЕ: data/zaman_benchmark_data.json не найден. Сравнительная аналитика будет недоступна.")
-        return "Сравнительная аналитика недоступна."
-    except Exception as e:
-        print(f"⚠️ Ошибка при загрузке бенчмарков: {e}")
-        return "Сравнительная аналитика недоступна."
-
-
 BENCHMARK_DATA = load_benchmark_data()
-if "недоступна" not in BENCHMARK_DATA:
-    print("📈 Сравнительная аналитика (бенчмарки) загружена.")
+
+print("👤 Профиль клиента загружен." if "недоступна" not in STATIC_CLIENT_PROFILE else "⚠️ Профиль клиента НЕ загружен.")
+print("📈 Бенчмарки загружены." if "недоступна" not in BENCHMARK_DATA else "⚠️ Бенчмарки НЕ загружены.")
 
 
-# --------------------------------------------------------
-
-# --- Модели данных (Pydantic) ---
+# --- Pydantic Models ---
 class AnalyzeRequest(BaseModel):
     session_id: str
 
@@ -141,51 +169,45 @@ class AnalyzeResponse(BaseModel):
     categories: Dict[str, float]
 
 
-# --- Логика Анализа (Мок) ---
+# --- Анализ транзакций ---
 def analyze_mock_transactions() -> AnalyzeResponse:
-    """Имитация интеллектуального анализа."""
-    try:
-        # ===== ИСПРАВЛЕННЫЙ ПУТЬ ↓ =====
-        with open("data/mock_transactions.json", "r", encoding="utf-8") as f:
-            transactions = json.load(f)
-    except FileNotFoundError:
-        print("❌ КРИТИЧЕСКАЯ ОШИБКА: data/mock_transactions.json не найден.")
-        return AnalyzeResponse(summary="Ошибка: mock_transactions.json не найден.", categories={})
-
+    transactions = load_json_safe("data/mock_transactions.json", [])
+    if not transactions:
+        return AnalyzeResponse(
+            summary="Ошибка: файл транзакций не найден.",
+            categories={}
+        )
+    
     categories: Dict[str, float] = {}
     total_income = 0
     total_expense = 0
-
+    
     for tx in transactions:
         amount = tx["amount"]
         category = tx["category"]
         if amount > 0:
             total_income += amount
         else:
-            if category not in categories:
-                categories[category] = 0
-            categories[category] += abs(amount)
+            categories[category] = categories.get(category, 0) + abs(amount)
             total_expense += abs(amount)
-
-    sorted_categories = dict(sorted(categories.items(), key=lambda item: item[1], reverse=True))
-
+    
+    sorted_categories = dict(sorted(categories.items(), key=lambda x: x[1], reverse=True))
+    
     dynamic_summary = (
-        f"Клиент получил {total_income} KZT дохода и потратил {total_expense} KZT. "
-        f"Основные траты за последний период: " + ", ".join(
-            [f"{k} ({v:.0f} KZT)" for k, v in sorted_categories.items()])
+        f"Клиент получил {total_income:.0f} KZT дохода и потратил {total_expense:.0f} KZT. "
+        f"Основные траты: " + ", ".join([f"{k} ({v:.0f} KZT)" for k, v in list(sorted_categories.items())[:3]])
     )
-
+    
     full_context = (
-        f"СТАТИЧЕСКИЙ ПРОФИЛЬ (Из базы знаний продаж): {STATIC_CLIENT_PROFILE}\n\n"
-        f"ДИНАМИЧЕСКИЙ АНАЛИЗ ТЕКУЩИХ ТРАНЗАКЦИЙ: {dynamic_summary}"
+        f"СТАТИЧЕСКИЙ ПРОФИЛЬ: {STATIC_CLIENT_PROFILE}\n\n"
+        f"ДИНАМИЧЕСКИЙ АНАЛИЗ: {dynamic_summary}"
     )
-
+    
     return AnalyzeResponse(summary=full_context, categories=sorted_categories)
 
 
-# --- Логика RAG (Ядро) ---
-async def get_embedding(text: str) -> list[float]:
-    """Получает эмбеддинг для одного текста."""
+# --- RAG ---
+async def get_embedding(text: str) -> List[float]:
     try:
         response = await http_client.post(
             f"{BASE_URL}/v1/embeddings",
@@ -195,62 +217,73 @@ async def get_embedding(text: str) -> list[float]:
         response.raise_for_status()
         return response.json()['data'][0]['embedding']
     except Exception as e:
-        print(f"Ошибка API эмбеддинга: {e}")
+        print(f"Ошибка эмбеддинга: {e}")
         return []
-    
 
-def query_vector_db(embedding: list[float]) -> str:
-    """Ищет в ChromaDB релевантные документы."""
+
+def query_vector_db(embedding: List[float]) -> str:
     if not collection or not embedding:
-        return "Информация о продуктах банка временно недоступна."
-
-    results = collection.query(
-        query_embeddings=[embedding],
-        n_results=3
-    )
+        return "База знаний недоступна."
+    
+    results = collection.query(query_embeddings=[embedding], n_results=3)
     return "\n---\n".join(results['documents'][0])
 
 
+# --- LLM Response ---
 async def get_llm_response(session_id: str, user_message: str) -> str:
-    """
-    Главная функция LLM. Собирает контекст, ищет RAG и формирует промпт.
-    """
-    # 1. Получаем ПОЛНЫЙ финансовый контекст (статика + динамика)
-    user_context = USER_STATE_CACHE.get(session_id, {}).get("summary",
-                                                             "Финансовый анализ еще не проводился. Попросите клиента нажать 'Загрузить выписку'.")
-
-    # 2. RAG: Ищем релевантные продукты/советы
-    query_embedding = await get_embedding(f"Сообщение клиента: {user_message}. Его контекст: {user_context}")
+    user_context = USER_STATE_CACHE.get(session_id, {}).get(
+        "summary", 
+        "Финансовый анализ не проведен. Попросите загрузить выписку."
+    )
+    
+    # Определяем эмоциональное состояние
+    emotional_state = detect_emotional_state(user_message)
+    
+    # Если клиент в стрессе, добавляем совет по wellness
+    wellness_tip = ""
+    if emotional_state == "stressed":
+        wellness_tip = f"\n\n**🌿 Совет по заботе о себе:**\n{get_wellness_advice()}"
+    
+    # RAG
+    query_embedding = await get_embedding(f"{user_message}. Контекст: {user_context}")
     retrieved_docs = query_vector_db(query_embedding)
-
-    # 3. Собираем "Мастер-промпт"
+    
+    # Текущее время
+    current_time = datetime.now().strftime("%H:%M, %d.%m.%Y")
+    
     MASTER_PROMPT = f"""
-    Ты - Zaman, "умный, человекоподобный и персональный" AI-ассистент исламского банка.
-    Твоя миссия - не просто отвечать, а помогать принимать ОСОЗНАННЫЕ финансовые решения, строго соблюдая принципы этики и Шариата.
-    Ты должен вызывать доверие. Будь эмпатичным, но профессиональным. Ты ПРОАКТИВНЫЙ продавец услуг.
+Ты — Zaman, персональный AI-ассистент исламского банка. Твоя миссия — быть настоящим финансовым другом клиента.
 
-    не используй Bold или Italic в ответах.
+**ПРИНЦИПЫ ОБЩЕНИЯ:**
+1. **Эмпатия прежде всего** — если клиент переживает, сначала поддержи его эмоционально, потом говори о финансах.
+2. **Никогда не используй Bold или Italic** — общайся естественно, как живой человек.
+3. **Будь проактивным** — не жди вопросов, предлагай решения на основе данных.
+4. **Говори на языке клиента** — избегай банковского жаргона, объясняй простыми словами.
 
-    ТЕКУЩИЙ, ПОЛНЫЙ КОНТЕКСТ КЛИЕНТА (Включая статический профиль и анализ трат):
-    {user_context}
+**ТЕКУЩИЙ КОНТЕКСТ КЛИЕНТА:**
+{user_context}
 
-    --- СРАВНИТЕЛЬНАЯ АНАЛИТИКА (БЕНЧМАРКИ) ---
-    Используй эти анонимные данные других клиентов для мотивации и сравнения. Выбери наиболее релевантный сегмент, чтобы дать индивидуальный совет по оптимизации или целям.
-    {BENCHMARK_DATA}
-    --- КОНЕЦ БЕНЧМАРКОВ ---
+**СРАВНИТЕЛЬНАЯ АНАЛИТИКА (для мотивации):**
+{BENCHMARK_DATA}
 
-    СПРАВОЧНАЯ ИНФОРМАЦИЯ ИЗ БАЗЫ ЗНАНИЙ ZAMAN BANK (Продукты и Исламское финансирование):
-    {retrieved_docs}
+**БАЗА ЗНАНИЙ О ПРОДУКТАХ:**
+{retrieved_docs}
 
-    ЗАДАЧА:
-    Ответь на последнее сообщение клиента.
-    1. Всегда учитывай его финансовый контекст для персонализации.
-    2. Если уместно, ИСПОЛЬЗУЙ информацию из базы знаний, чтобы ПРОАКТИВНО предложить продукты Zaman Bank.
-    3. Если клиент спрашивает о своих тратах или целях, обязательно сравни его с подходящим сегментом из СРАВНИТЕЛЬНОЙ АНАЛИТИКИ (бенчмарков), чтобы мотивировать его и дать реалистичный совет по сбережениям.
-    4. Объясняй принципы Исламского финансирования простыми словами.
-    5. Говори на языке клиента (русский).
-    """
+**ЭМОЦИОНАЛЬНОЕ СОСТОЯНИЕ КЛИЕНТА:** {emotional_state}
 
+**ТЕКУЩЕЕ ВРЕМЯ:** {current_time}
+
+**ЗАДАЧА:**
+Ответь на сообщение клиента, учитывая:
+- Его финансовую ситуацию
+- Эмоциональное состояние
+- Сравнительную аналитику (мотивируй, сравнивая с похожими клиентами)
+- Продукты банка (предлагай, где уместно)
+- Принципы исламского финансирования (объясняй просто)
+
+Если клиент в стрессе, обязательно предложи способ справиться без лишних трат.
+"""
+    
     try:
         response = await http_client.post(
             f"{BASE_URL}/v1/chat/completions",
@@ -261,84 +294,70 @@ async def get_llm_response(session_id: str, user_message: str) -> str:
                     {"role": "system", "content": MASTER_PROMPT},
                     {"role": "user", "content": user_message}
                 ],
-                "temperature": 0.7,
-                "max_tokens": 500
+                "temperature": 0.8,  # Повышена для более "человечных" ответов
+                "max_tokens": 600
             }
         )
         response.raise_for_status()
-        return response.json()['choices'][0]['message']['content']
-
-    except httpx.HTTPStatusError as e:
-        print(f"Ошибка API LLM: {e.response.status_code} - {e.response.text}")
-        return "Произошла ошибка при обращении к AI-модели. Попробуйте позже."
+        ai_response = response.json()['choices'][0]['message']['content']
+        
+        # Добавляем wellness совет, если нужно
+        return ai_response + wellness_tip
+        
     except Exception as e:
-        print(f"Неожиданная ошибка LLM: {e}")
-        return "Я столкнулся с внутренней ошибкой. Пожалуйста, перефразируйте."
+        print(f"Ошибка LLM: {e}")
+        return "Извините, возникла техническая проблема. Попробуйте еще раз через минуту."
 
 
-# --- Эндпоинты Фронтенда ---
+# --- ENDPOINTS ---
 
 @app.get("/", include_in_schema=False)
 def serve_main_frontend():
-    """Отдает главную HTML-страницу (static/index.html)."""
     if not os.path.exists(INDEX_HTML_PATH):
-        raise HTTPException(status_code=404, detail=f"Главный фронтенд файл не найден: {INDEX_HTML_PATH}")
+        raise HTTPException(status_code=404, detail="index.html не найден")
     return FileResponse(INDEX_HTML_PATH, media_type="text/html")
 
 
 @app.get("/chat", include_in_schema=False)
 def serve_chat_frontend():
-    """Отдает страницу чата (static/chat.html)."""
     if not os.path.exists(CHAT_HTML_PATH):
-        raise HTTPException(status_code=404, detail=f"Фронтенд файл чата не найден: {CHAT_HTML_PATH}")
+        raise HTTPException(status_code=404, detail="chat.html не найден")
     return FileResponse(CHAT_HTML_PATH, media_type="text/html")
 
 
-# --- Эндпоинты API (Остаются без изменений) ---
-
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze_transactions_endpoint(request: AnalyzeRequest):
-    """
-    Анализирует МОК-данные и сохраняет ПОЛНЫЙ контекст (статика+динамика) в кэш.
-    """
-    print(f"Запрос на анализ для сессии: {request.session_id}")
+    print(f"Анализ для {request.session_id}")
     response = analyze_mock_transactions()
-
-    # Сохраняем ПОЛНЫЙ саммари для RAG
+    
     if request.session_id not in USER_STATE_CACHE:
         USER_STATE_CACHE[request.session_id] = {}
     USER_STATE_CACHE[request.session_id]["summary"] = response.summary
-
+    
     return response
 
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_with_assistant(request: ChatRequest):
-    """
-    Главный эндпоинт чата.
-    """
-    print(f"Сообщение от {request.session_id}: {request.message}")
+    print(f"[{request.session_id}] {request.message}")
+    
     if not collection:
-        raise HTTPException(status_code=500, detail="Векторная база данных не загружена. Запустите rag_prep.py")
+        raise HTTPException(status_code=500, detail="База знаний не загружена")
+    
+    ai_response = await get_llm_response(request.session_id, request.message)
+    
+    return ChatResponse(role="assistant", content=ai_response)
 
-    ai_response_content = await get_llm_response(request.session_id, request.message)
 
-    return ChatResponse(role="assistant", content=ai_response_content)
-
-
-# --- Запуск (С авто-открытием браузера) ---
+# --- ЗАПУСК ---
 if __name__ == "__main__":
     SERVER_URL = "http://localhost:8000"
-
-
+    
     def start_server():
         uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
-    print(f"✅ Вся система Zaman AI запущена на: {SERVER_URL}")
-    print(f"🌐 Открываем главный интерфейс в браузере...")
-
-    # Открываем браузер на корневом пути, который теперь отдает index.html
+    
+    print(f"✅ Zaman AI запущен: {SERVER_URL}")
+    print("🌐 Открываем браузер...")
+    
     threading.Timer(1.5, lambda: webbrowser.open(SERVER_URL)).start()
-
     start_server()
