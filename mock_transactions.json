@@ -1,0 +1,11 @@
+[
+  { "date": "2025-10-01", "amount": -15000, "description": "Ресторан 'La Trattoria'", "category": "Рестораны" },
+  { "date": "2025-10-01", "amount": -4500, "description": "Яндекс.Такси", "category": "Транспорт" },
+  { "date": "2025-10-02", "amount": -25000, "description": "Покупка одежды", "category": "Покупки" },
+  { "date": "2025-10-03", "amount": -12000, "description": "Ресторан 'Barista'", "category": "Рестораны" },
+  { "date": "2025-10-04", "amount": -5000, "description": "Кинотеатр", "category": "Развлечения" },
+  { "date": "2025-10-05", "amount": 250000, "description": "Зарплата", "category": "Доход" },
+  { "date": "2025-10-06", "amount": -8000, "description": "Продукты 'Magnum'", "category": "Продукты" },
+  { "date": "2025-10-07", "amount": -4500, "description": "Яндекс.Такси", "category": "Транспорт" },
+  { "date": "2025-10-08", "amount": -18000, "description": "Ресторан 'SUSHIBAR'", "category": "Рестораны" }
+]
