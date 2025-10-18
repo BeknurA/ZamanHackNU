@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Zaman Bank</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2D9A86",
+                        "accent": "#EEFE6D",
+                        "background-light": "#ffffff",
+                        "background-dark": "#101922",
+                        "foreground-light": "#0d141b",
+                        "foreground-dark": "#f0f2f5",
+                        "subtle-light": "#f0f7f5",
+                        "subtle-dark": "#1b2b3a",
+                        "muted-light": "#5c6f7e",
+                        "muted-dark": "#a1b4c5",
+                        "border-light": "#e3e9ee",
+                        "border-dark": "#2a3f52"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display text-foreground-light dark:text-foreground-dark">
+    <div class="flex flex-col min-h-screen">
+        <header
+            class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm border-b border-border-light dark:border-border-dark">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center gap-4">
+                        <img src="/static/images/Logo-colors.svg" alt="Zaman Bank Logo" class="h-50 w-50">
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button
+                            class="p-2 rounded-full hover:bg-subtle-light dark:hover:bg-subtle-dark transition-colors">
+                            <span
+                                class="material-symbols-outlined text-muted-light dark:text-muted-dark">notifications</span>
+                        </button>
+                        <div class="w-10 h-10 rounded-full bg-cover bg-center"
+                            style='background-image: url("https://i.pravatar.cc/40");'></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold mb-2">С возвращением!</h2>
+                    <p class="text-muted-light dark:text-muted-dark">Вот краткий обзор ваших финансов.</p>
+                </div>
+                <div>
+                    <div class="border-b border-border-light dark:border-border-dark">
+                        <nav aria-label="Tabs" class="-mb-px flex space-x-8">
+                            <a id="tab-balances" href="#"
+                                class="tab-link border-primary text-primary whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Баланс
+                                счетов</a>
+                            <a id="tab-spending" href="#"
+                                class="tab-link border-transparent text-muted-light dark:text-muted-dark hover:text-foreground-light dark:hover:text-foreground-dark hover:border-border-light dark:hover:border-border-dark whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Траты
+                                по категориям</a>
+                        </nav>
+                    </div>
+
+                    <div id="view-balances" class="pt-8 tab-view">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div class="bg-primary text-background-light p-6 rounded-lg">
+                                <h3 class="text-sm font-medium text-background-light/80 mb-1">Общий баланс</h3>
+                                <p class="text-3xl font-bold">12,345.67 KZT</p>
+                            </div>
+                            <div class="bg-subtle-light dark:bg-subtle-dark p-6 rounded-lg">
+                                <h3 class="text-sm font-medium text-muted-light dark:text-muted-dark mb-1">Траты за
+                                    месяц</h3>
+                                <p class="text-3xl font-bold">2,345.10 KZT</p>
+                            </div>
+                            <div class="bg-accent p-6 rounded-lg">
+                                <a href="/chat"
+                                    class="w-full h-full flex items-center justify-center text-primary font-semibold hover:opacity-80 transition-opacity">
+                                    <span class="material-symbols-outlined mr-2">smart_toy</span>
+                                    <span>Спросить Zaman AI</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-xl font-bold mb-4">Счета</h3>
+                                <div class="space-y-4">
+                                    <div
+                                        class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
+                                        <div
+                                            class="flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-12 text-primary">
+                                            <span class="material-symbols-outlined">credit_card</span>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="font-medium">Основной счет</p>
+                                            <p class="text-sm text-muted-light dark:text-muted-dark">Текущий</p>
+                                        </div>
+                                        <p class="font-medium shrink-0">5,678.90 KZT</p>
+                                    </div>
+                                    <div
+                                        class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
+                                        <div
+                                            class="flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-12 text-primary">
+                                            <span class="material-symbols-outlined">savings</span>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="font-medium">Сбережения</p>
+                                            <p class="text-sm text-muted-light dark:text-muted-dark">Депозит</p>
+                                        </div>
+                                        <p class="font-medium shrink-0">6,789.01 KZT</p>
+                                    </div>
+                                    <div
+                                        class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
+                                        <div
+                                            class="flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-12 text-primary">
+                                            <span class="material-symbols-outlined">credit_card</span>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="font-medium">Кредитная карта</p>
+                                            <p class="text-sm text-muted-light dark:text-muted-dark">Кредит</p>
+                                        </div>
+                                        <p class="font-medium shrink-0">1,234.56 KZT</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold mb-4">Недавние транзакции</h3>
+                                <div class="space-y-4">
+                                    <div
+                                        class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
+                                        <div
+                                            class="flex items-center justify-center rounded-lg bg-subtle-light dark:bg-subtle-dark shrink-0 size-12 text-muted-light dark:text-muted-dark">
+                                            <span class="material-symbols-outlined">shopping_cart</span>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="font-medium">Супермаркет "Magnum"</p>
+                                            <p class="text-sm text-muted-light dark:text-muted-dark">Продукты</p>
+                                        </div>
+                                        <p class="font-medium shrink-0">-75.23 KZT</p>
+                                    </div>
+                                    <div
+                                        class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
+                                        <div
+                                            class="flex items-center justify-center rounded-lg bg-subtle-light dark:bg-subtle-dark shrink-0 size-12 text-muted-light dark:text-muted-dark">
+                                            <span class="material-symbols-outlined">restaurant</span>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="font-medium">Кафе "Coffee Boom"</p>
+                                            <p class="text-sm text-muted-light dark:text-muted-dark">Рестораны</p>
+                                        </div>
+                                        <p class="font-medium shrink-0">-42.50 KZT</p>
+                                    </div>
+                                    <div
+                                        class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
+                                        <div
+                                            class="flex items-center justify-center rounded-lg bg-subtle-light dark:bg-subtle-dark shrink-0 size-12 text-muted-light dark:text-muted-dark">
+                                            <span class="material-symbols-outlined">shopping_bag</span>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="font-medium">Интернет-магазин "Kaspi"</p>
+                                            <p class="text-sm text-muted-light dark:text-muted-dark">Покупки</p>
+                                        </div>
+                                        <p class="font-medium shrink-0">-120.00 KZT</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-spending" class="pt-8 tab-view hidden">
+                        <h3 class="text-xl font-bold mb-4">Анализ расходов за месяц</h3>
+                        <div id="spending-chart"
+                            class="space-y-4 p-6 bg-subtle-light/50 dark:bg-subtle-dark/50 rounded-xl">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer
+            class="bg-background-light dark:bg-background-dark border-t border-border-light dark:border-border-dark">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <p class="text-center text-sm text-muted-light dark:text-muted-dark">© 2025 Nova Bank. Все права
+                    защищены.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('.tab-link');
+            const views = document.querySelectorAll('.tab-view');
+
+            // Мок-данные для графика расходов
+            const spendingData = {
+                "Продукты": 1250.70,
+                "Транспорт": 340.50,
+                "Рестораны": 480.00,
+                "Покупки": 890.90,
+                "Коммунальные услуги": 220.00
+            };
+
+            // Функция для переключения вкладок
+            function switchTab(targetId) {
+                tabs.forEach(tab => {
+                    const isActive = tab.id === `tab-${targetId}`;
+                    tab.classList.toggle('border-primary', isActive);
+                    tab.classList.toggle('text-primary', isActive);
+                    tab.classList.toggle('border-transparent', !isActive);
+                    tab.classList.toggle('text-muted-light', !isActive);
+                    tab.classList.toggle('dark:text-muted-dark', !isActive);
+                });
+
+                views.forEach(view => {
+                    view.classList.toggle('hidden', view.id !== `view-${targetId}`);
+                });
+            }
+
+            // Функция для отрисовки графика расходов
+            function renderSpendingChart(categories) {
+                const chartContainer = document.getElementById('spending-chart');
+                const total = Object.values(categories).reduce((sum, val) => sum + val, 0);
+                let htmlContent = '';
+
+                const maxAmount = Math.max(...Object.values(categories));
+
+                for (const [category, amount] of Object.entries(categories).sort((a, b) => b[1] - a[1])) {
+                    const percentage = total > 0 ? ((amount / total) * 100).toFixed(1) : 0;
+                    const barColorStyle = amount === maxAmount ? 'background-color: #EEFE6D;' : 'background-color: #2D9A86;';
+
+                    htmlContent += `
+                    <div class="text-sm">
+                        <div class="flex justify-between font-medium mb-1">
+                            <span>${category}</span>
+                            <span>${percentage}% (${Math.round(amount)} KZT)</span>
+                        </div>
+                        <div class="w-full bg-border-light dark:bg-border-dark rounded-full h-2.5">
+                            <div class="h-2.5 rounded-full" style="width: ${percentage}%; ${barColorStyle}"></div>
+                        </div>
+                    </div>
+                `;
+                }
+                chartContainer.innerHTML = htmlContent;
+            }
+
+            // Назначаем обработчики кликов на вкладки
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const targetId = this.id.replace('tab-', '');
+                    switchTab(targetId);
+                });
+            });
+
+            // Инициализация: отрисовываем график при загрузке страницы
+            renderSpendingChart(spendingData);
+        });
+    </script>
+
+</body>
+
+</html>

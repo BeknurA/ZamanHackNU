@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Zaman AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet" />
+    <script>
+        // Конфигурация Tailwind CSS для вашего дизайна
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2D9A86",
+                        "accent": "#EEFE6D",
+                        "background-light": "#ffffff",
+                        "background-dark": "#101922",
+                        "text-light": "#101922",
+                        "text-dark": "#ffffff",
+                        "subtle-light": "#f3f4f6",
+                        "subtle-dark": "#1b2837",
+                        "placeholder-light": "#6b7280",
+                        "placeholder-dark": "#9ca3af"
+                    },
+                    fontFamily: { "display": ["Manrope", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        /* Стили для скроллбара и плавных переходов */
+        #chat-window::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chat-window::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 4px;
+        }
+
+        .transition-all {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+
+    <div class="flex flex-col min-h-screen">
+        <header
+            class="flex items-center justify-between px-6 py-4 border-b border-subtle-light/80 dark:border-subtle-dark/50">
+            <div class="flex items-center gap-4">
+                <img src="/static/images/Logo-colors.svg" alt="Nova Bank Logo" class="h-50 w-50">
+            </div>
+            <div class="w-10 h-10 bg-center bg-no-repeat bg-cover rounded-full"
+                style='background-image: url("https://i.pravatar.cc/40?u=demo_user");'></div>
+        </header>
+
+        <main class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+            <div class="w-full max-w-2xl mx-auto flex flex-col items-center text-center">
+
+                <div id="initial-prompt" class="w-full">
+                    <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Спросите меня о чем угодно</h2>
+                </div>
+            </div>
+        </main>
+
+        <section id="chat-interface" class="flex-1 w-full max-w-3xl mx-auto flex flex-col h-full hidden">
+            <div id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-4">
+                </div>
+            <form id="chat-form" class="p-4 border-t border-subtle-light dark:border-subtle-dark bg-background-light dark:bg-background-dark">
+                <div class="flex gap-2">
+                    <input type="text" id="chat-input" placeholder="Введите ваше сообщение..."
+                           class="flex-1 p-3 border border-subtle-light dark:border-subtle-dark rounded-lg bg-subtle-light dark:bg-subtle-dark focus:ring-primary focus:border-primary">
+                    <button type="submit"
+                            class="px-4 py-2 bg-primary text-text-dark rounded-lg font-semibold hover:bg-primary/90 transition-colors">
+                        Отправить
+                    </button>
+                    <button type="button" id="analyze-button"
+                            class="px-4 py-2 bg-accent text-primary rounded-lg font-semibold hover:bg-accent/90 transition-colors">
+                        Загрузить выписку
+                    </button>
+                </div>
+            </form>
+        </section>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatInterface = document.getElementById('chat-interface');
+            const initialPrompt = document.getElementById('initial-prompt');
+            const chatWindow = document.getElementById('chat-window');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const analyzeButton = document.getElementById('analyze-button');
+
+            // Имитация Session ID
+            const sessionId = 'user_' + Math.random().toString(36).substring(2, 9);
+
+            // Показываем интерфейс чата (поскольку это /chat страница)
+            initialPrompt.classList.add('hidden');
+            chatInterface.classList.remove('hidden');
+
+            function appendMessage(role, content) {
+                const messageElement = document.createElement('div');
+                const isUser = role === 'user';
+
+                messageElement.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`;
+                messageElement.innerHTML = `
+                    <div class="max-w-xs md:max-w-md lg:max-w-lg ${isUser ? 'bg-primary text-white rounded-tr-none' : 'bg-subtle-light dark:bg-subtle-dark text-text-light dark:text-text-dark rounded-tl-none'} p-3 rounded-xl shadow-md transition-all duration-300 ease-in-out">
+                        ${content.replace(/\n/g, '<br>')}
+                    </div>
+                `;
+                chatWindow.appendChild(messageElement);
+                chatWindow.scrollTop = chatWindow.scrollHeight; // Прокрутка вниз
+            }
+
+            async function sendMessage(message) {
+                appendMessage('user', message);
+                chatInput.value = '';
+
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sessionId, message: message }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    appendMessage('assistant', data.content);
+                } catch (error) {
+                    console.error('Ошибка отправки сообщения:', error);
+                    appendMessage('assistant', 'Извините, произошла ошибка на стороне сервера. Попробуйте еще раз.');
+                }
+            }
+
+            async function analyzeTransactions() {
+                appendMessage('system', '🤖 Анализирую финансовую выписку и загружаю персональный контекст...');
+
+                try {
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sessionId }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    // Выводим только часть для пользователя
+                    const userFacingSummary = `✅ **Выписка загружена!**\n\nЯ проанализировал ваши финансы:\n- ${data.summary.split('\n\n')[1]}`;
+
+                    appendMessage('assistant', userFacingSummary);
+
+                } catch (error) {
+                    console.error('Ошибка анализа транзакций:', error);
+                    appendMessage('assistant', '⚠️ Не удалось загрузить выписку. Проверьте логи сервера.');
+                }
+            }
+
+            chatForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const message = chatInput.value.trim();
+                if (message) {
+                    sendMessage(message);
+                }
+            });
+
+            analyzeButton.addEventListener('click', analyzeTransactions);
+
+            // Приветственное сообщение от ассистента при входе
+            appendMessage('assistant',
+                '**Сәлеметсіз бе!** Я Zaman AI, ваш персональный финансовый ассистент исламского банка.\n\n' +
+                'Чтобы я мог дать вам по-настоящему полезный совет, начните с нажатия на кнопку **"Загрузить выписку"**.'
+            );
+        });
+    </script>
+
+</body>
+
+</html>
