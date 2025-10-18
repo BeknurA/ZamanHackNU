@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zaman AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Шрифт по умолчанию для современного вида */
+        .font-sans { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        /* Цветовой код Zaman */
+        .bg-persian-green { background-color: #2D9A86; }
+        .text-persian-green { color: #2D9A86; }
+        .bg-solar { background-color: #EEFE6D; }
+        .text-solar { color: #EEFE6D; }
+
+        /* Стили для скролла чата (опционально) */
+        #chat-window::-webkit-scrollbar { width: 8px; }
+        #chat-window::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 4px; }
+        #chat-window::-webkit-scrollbar-track { background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+
+    <div id="root" class="flex h-screen">
+
+        <div class="w-1/4 p-6 bg-white shadow-xl flex flex-col border-r border-gray-100">
+            <h2 class="text-2xl font-extrabold mb-8 text-persian-green tracking-wide">Zaman AI Assistant</h2>
+
+            <div class="flex-grow">
+                <h3 class="text-lg font-bold mb-3 text-gray-700 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-persian-green"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                    Мои Финансовые Цели
+                </h3>
+
+                <div class="border border-green-200 p-4 rounded-xl bg-green-50 shadow-sm">
+                    <p class="font-medium text-gray-800">Первый взнос на квартиру</p>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                        <div class="h-2.5 rounded-full" style="width: 35%; background-color: #EEFE6D;"></div>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">Прогресс: 35%</p>
+                </div>
+
+                <h3 class="text-lg font-bold mt-8 mb-3 text-gray-700 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 text-persian-green"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    Функционал
+                </h3>
+
+                <button
+                    id="analyze-btn"
+                    onclick="handleAnalyze()"
+                    class="w-full py-3 rounded-xl shadow-md disabled:opacity-50 transition flex items-center justify-center font-bold text-gray-900"
+                    style="background-color: #EEFE6D;"
+                >
+                    1. Загрузить выписку (Анализ)
+                </button>
+
+                <button
+                    id="stress-btn"
+                    onclick="sendPredefinedMessage('Я очень устал и расстроен, что не могу сэкономить. Дай совет по борьбе со стрессом.')"
+                    class="w-full py-3 rounded-xl shadow-md hover:opacity-90 disabled:opacity-50 transition mt-2 flex items-center justify-center font-bold text-white bg-persian-green"
+                >
+                    2. Кнопка "Я в стрессе"
+                </button>
+
+                <button
+                    onclick="alert('Архитектура готова (Whisper API), но для демо используйте текст.')"
+                    class="w-full bg-gray-300 text-gray-700 py-3 rounded-xl shadow-md disabled:opacity-50 transition mt-2 flex items-center justify-center font-bold"
+                    disabled
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    [ Голосовой режим ]
+                </button>
+            </div>
+        </div>
+
+        <div class="w-3/4 flex flex-col">
+
+            <div id="analysis-section" class="p-6 border-b border-gray-100 bg-white shadow-inner hidden">
+                </div>
+
+            <div id="chat-window" class="flex-grow overflow-y-auto p-6 space-y-4 bg-gray-50">
+                <div class="flex w-full justify-start">
+                    <div class="max-w-xl p-3 my-1 rounded-2xl shadow-md bg-white text-gray-800 border border-gray-100 rounded-tl-sm font-sans">
+                        Здравствуйте! Я ваш персональный AI-ассистент Zaman Bank. Нажмите '1. Загрузить выписку', чтобы начать анализ ваших финансов.
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 border-t border-gray-100 bg-white shadow-lg">
+                <div class="flex space-x-3 items-center">
+                    <input
+                        id="chat-input"
+                        type="text"
+                        placeholder="Спросите меня о продуктах, целях или расходах..."
+                        class="flex-grow p-4 border border-gray-200 rounded-xl focus:ring-persian-green focus:border-persian-green text-gray-800 transition"
+                        style="font-size: 16px;"
+                        onkeydown="if(event.key === 'Enter') handleChat()"
+                    />
+                    <button
+                        id="send-btn"
+                        onclick="handleChat()"
+                        style="background-color: #EEFE6D;"
+                        class="text-gray-900 px-6 py-4 rounded-xl shadow-md hover:bg-yellow-400 disabled:opacity-50 transition flex items-center font-bold"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4 20-7Z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- КОНСТАНТЫ И СОСТОЯНИЕ ---
+        const API_BASE_URL = window.location.origin; // Адрес нашего же сервера (http://localhost:8000)
+        const SESSION_ID = 'demo_user_123';
+
+        let isLoading = false;
+        let analysisData = null;
+
+        const chatWindow = document.getElementById('chat-window');
+        const chatInput = document.getElementById('chat-input');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const sendBtn = document.getElementById('send-btn');
+        const analysisSection = document.getElementById('analysis-section');
+
+        // --- Утилиты UI ---
+
+        function setButtonsDisabled(disabled) {
+            analyzeBtn.disabled = disabled;
+            sendBtn.disabled = disabled || !chatInput.value.trim();
+            isLoading = disabled;
+        }
+
+        function scrollToBottom() {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        /** Создает и добавляет пузырь сообщения */
+        function renderMessage(role, content) {
+            const isUser = role === 'user';
+            const bubble = document.createElement('div');
+            bubble.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = `max-w-xl p-3 my-1 rounded-2xl shadow-md transition-all duration-300 ease-in-out font-sans ${
+                isUser
+                    ? 'bg-persian-green text-white rounded-br-sm' // Persian Green
+                    : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm' // Cloud
+            }`;
+            contentDiv.textContent = content;
+
+            bubble.appendChild(contentDiv);
+            chatWindow.appendChild(bubble);
+            scrollToBottom();
+        }
+
+        /** Рендерит индикатор печати (Zaman печатает...) */
+        function renderTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.id = 'typing-indicator';
+            indicator.className = 'flex w-full justify-start';
+            indicator.innerHTML = `
+                <div class="max-w-xl p-3 my-1 rounded-2xl bg-gray-200 text-gray-600 rounded-tl-sm">
+                    Zaman печатает...
+                </div>
+            `;
+            chatWindow.appendChild(indicator);
+            scrollToBottom();
+        }
+
+        /** Удаляет индикатор печати */
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        /** Рендерит секцию визуализации */
+        function renderAnalysisChart(categories) {
+            analysisSection.classList.remove('hidden');
+
+            const total = Object.values(categories).reduce((sum, val) => sum + val, 0);
+
+            let htmlContent = `
+                <div class="p-4 bg-white rounded-xl shadow-lg border border-gray-100 font-sans">
+                    <h3 class="text-xl font-bold mb-3 flex items-center text-green-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2 text-persian-green"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+                        Обзор расходов (Визуализация)
+                    </h3>
+                    <div class="space-y-2">
+            `;
+
+            let maxAmount = Math.max(...Object.values(categories));
+
+            for (const [category, amount] of Object.entries(categories)) {
+                const percentage = ((amount / total) * 100).toFixed(1);
+                const barColor = amount === maxAmount ? '#EEFE6D' : '#2D9A86'; // Solar на самой большой трате
+
+                htmlContent += `
+                    <div class="text-sm">
+                        <div class="flex justify-between font-medium mb-1">
+                            <span>${category}</span>
+                            <span>${percentage}% (${Math.round(amount)} KZT)</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div
+                                class="h-2.5 rounded-full"
+                                style="width: ${percentage}%; background-color: ${barColor};"
+                            ></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            htmlContent += `</div></div>`;
+            analysisSection.innerHTML = htmlContent;
+        }
+
+        // --- Логика API ---
+
+        /** 1. Запрос на анализ (/api/analyze) */
+        async function handleAnalyze() {
+            if (isLoading) return;
+
+            setButtonsDisabled(true);
+            renderMessage('user', 'Инициирован анализ финансовой выписки...');
+            renderTypingIndicator();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: SESSION_ID }),
+                });
+
+                if (!response.ok) throw new Error('Ошибка API анализа');
+
+                analysisData = await response.json();
+
+                removeTypingIndicator();
+
+                const categoryList = Object.entries(analysisData.categories)
+                    .map(([key, value]) => `${key}: ${Math.round(value)} KZT`)
+                    .join(', ');
+
+                renderMessage('assistant',
+                    `Я успешно проанализировал вашу выписку. ${analysisData.summary}. Основные категории трат: ${categoryList}. Чем могу помочь дальше?`
+                );
+
+                renderAnalysisChart(analysisData.categories);
+                analyzeBtn.disabled = true; // Отключаем кнопку после успешной загрузки
+
+            } catch (error) {
+                console.error('Ошибка анализа:', error);
+                removeTypingIndicator();
+                renderMessage('assistant', 'Ошибка анализа. Проверьте, запущен ли бэкенд и файл mock_transactions.json.');
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+
+        /** 2. Запрос на чат (/api/chat) */
+        async function handleChat() {
+            const userMessage = chatInput.value.trim();
+            if (!userMessage || isLoading) return;
+
+            chatInput.value = '';
+            setButtonsDisabled(true);
+
+            renderMessage('user', userMessage);
+            renderTypingIndicator();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: SESSION_ID,
+                        message: userMessage
+                    }),
+                });
+
+                if (!response.ok) throw new Error('Ошибка API чата');
+
+                const data = await response.json();
+
+                removeTypingIndicator();
+                renderMessage('assistant', data.content);
+
+            } catch (error) {
+                console.error('Ошибка чата:', error);
+                removeTypingIndicator();
+                renderMessage('assistant', 'Произошла ошибка при получении ответа от AI.');
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+
+        /** Отправка сообщения по нажатию кнопки "Я в стрессе" */
+        function sendPredefinedMessage(message) {
+            chatInput.value = message;
+            handleChat();
+        }
+
+        // --- Инициализация ---
+        // Обновляем состояние кнопки Send при вводе
+        chatInput.addEventListener('input', () => {
+            sendBtn.disabled = isLoading || !chatInput.value.trim();
+        });
+
+        // Делаем кнопку Send неактивной при старте
+        sendBtn.disabled = true;
+
+    </script>
+</body>
+</html>
