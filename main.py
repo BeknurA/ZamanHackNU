@@ -23,7 +23,6 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 # --- Инициализация ---
 app = FastAPI(title="Zaman Bank AI Assistant Backend")
 
-# (Гилфойл): Это *критично* для связки Vercel (фронт) + Render (бэк)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Для хакатона - OK. Для прода - нет.
