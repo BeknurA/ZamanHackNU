@@ -1,40 +1,49 @@
-<<<<<<< HEAD
-# ZamanHackNU
-=======
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Zaman AI Assistant (Проект для ZamanHackNU)
 
-## Getting Started
+Это прототип "человекоподобного" AI-ассистента для банка, созданный в рамках хакатона. Приложение анализирует финансовое состояние пользователя и предоставляет персонализированные рекомендации по банковским продуктам (на основе принципов исламского финансирования) с использованием RAG.
 
-First, run the development server:
+## 🚀 Основные возможности
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+* **Динамический дашборд:** Главная страница (`index.html`) загружает и отображает финансовую сводку клиента из JSON-файла (`zaman_personalized_rag_data.json`), включая баланс, зарплату и траты.
+* **Визуализация расходов:** Вкладка "Траты по категориям" автоматически строит график на основе данных о расходах клиента.
+* **AI-ассистент (RAG):** Cтраница чата (`chat.html`) подключена к `gpt-4o-mini`. Бот использует финансовый контекст клиента и векторную базу данных (ChromaDB) для предоставления "умных" и релевантных советов по продуктам.
+* **Анализ для AI:** Бэкенд также использует `mock_transactions.json` для создания "саммари" о клиенте, которое передается в AI-модель для более точных ответов.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠 Технологический стек
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+* **Бэкенд:** Python, FastAPI, Uvicorn
+* **База данных:** ChromaDB (локальная векторная база данных для RAG)
+* **AI Модели:** `gpt-4o-mini` (чат), `text-embedding-3-small` (эмбеддинги) через API-хаб.
+* **Фронтенд:** HTML, TailwindCSS, JavaScript (для динамической отрисовки данных).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## ⚙️ Запуск проекта
 
-## Learn More
+1.  **Клонируйте репозиторий:**
+    ```bash
+    git clone [URL-вашего-репозитория]
+    cd [название-папки]
+    ```
 
-To learn more about Next.js, take a look at the following resources:
+2.  **Установите зависимости:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3.  **Создайте `.env` файл:**
+    В корне проекта создайте файл `.env` и укажите ваш API-ключ:
+    ```
+    API_KEY="sk-..."
+    ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4.  **Подготовьте векторную базу:**
+    (Этот шаг нужен, если база `zaman_db` отсутствует или требует обновления)
+    ```bash
+    python rag_prep.py
+    ```
 
-## Deploy on Vercel
+5.  **Запустите сервер:**
+    ```bash
+    python main.py
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
->>>>>>> ca0be7d (Initial commit from Create Next App)
+6.  Готово! Сервер автоматически откроет `http://localhost:8000` в вашем браузере.

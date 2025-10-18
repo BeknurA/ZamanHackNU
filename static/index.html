@@ -44,7 +44,7 @@
             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center gap-4">
-                        <img src="/static/images/Logo-colors.svg" alt="Zaman Bank Logo" class="h-50 w-50">
+                        <img src="/static/images/Logo-colors.svg" alt="Zaman Bank Logo" class="h-10 w-10">
                     </div>
                     <div class="flex items-center gap-4">
                         <button
@@ -69,7 +69,8 @@
                     <div class="border-b border-border-light dark:border-border-dark">
                         <nav aria-label="Tabs" class="-mb-px flex space-x-8">
                             <a id="tab-balances" href="#"
-                                class="tab-link border-primary text-primary whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Обзор</a>
+                                class="tab-link border-primary text-primary whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Баланс
+                                счетов</a>
                             <a id="tab-spending" href="#"
                                 class="tab-link border-transparent text-muted-light dark:text-muted-dark hover:text-foreground-light dark:hover:text-foreground-dark hover:border-border-light dark:hover:border-border-dark whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Траты
                                 по категориям</a>
@@ -77,20 +78,15 @@
                     </div>
 
                     <div id="view-balances" class="pt-8 tab-view">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                             <div class="bg-primary text-background-light p-6 rounded-lg">
-                                <h3 class="text-sm font-medium text-background-light/80 mb-1">Средний баланс</h3>
-                                <p id="total-balance" class="text-2xl lg:text-3xl font-bold">0 KZT</p>
+                                <h3 class="text-sm font-medium text-background-light/80 mb-1">Общий баланс</h3>
+                                <p id="total-balance" class="text-3xl font-bold">0 KZT</p>
                             </div>
                             <div class="bg-subtle-light dark:bg-subtle-dark p-6 rounded-lg">
-                                <h3 class="text-sm font-medium text-muted-light dark:text-muted-dark mb-1">Зарплата в
-                                    мес.</h3>
-                                <p id="monthly-salary" class="text-2xl lg:text-3xl font-bold">0 KZT</p>
-                            </div>
-                            <div class="bg-subtle-light dark:bg-subtle-dark p-6 rounded-lg">
-                                <h3 class="text-sm font-medium text-muted-light dark:text-muted-dark mb-1">Платеж по
-                                    кредиту</h3>
-                                <p id="loan-payment" class="text-2xl lg:text-3xl font-bold">0 KZT</p>
+                                <h3 class="text-sm font-medium text-muted-light dark:text-muted-dark mb-1">Траты за
+                                    месяц</h3>
+                                <p id="monthly-spending" class="text-3xl font-bold">0 KZT</p>
                             </div>
                             <div class="bg-accent p-6 rounded-lg">
                                 <a href="/chat"
@@ -100,11 +96,22 @@
                                 </a>
                             </div>
                         </div>
-
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div>
                                 <h3 class="text-xl font-bold mb-4">Счета</h3>
-                                <div id="accounts-list" class="space-y-4">
+                                <div class="space-y-4">
+                                    <div
+                                        class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
+                                        <div
+                                            class="flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-12 text-primary">
+                                            <span class="material-symbols-outlined">credit_card</span>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="font-medium">Основной счет</p>
+                                            <p class="text-sm text-muted-light dark:text-muted-dark">Текущий</p>
+                                        </div>
+                                        <p class="font-medium shrink-0">105,678.90 KZT</p>
+                                    </div>
                                     <div
                                         class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
                                         <div
@@ -121,7 +128,7 @@
                             </div>
                             <div>
                                 <h3 class="text-xl font-bold mb-4">Недавние транзакции</h3>
-                                <div id="transactions-list" class="space-y-4">
+                                <div class="space-y-4">
                                     <div
                                         class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
                                         <div
@@ -134,40 +141,35 @@
                                         </div>
                                         <p class="font-medium shrink-0">-75.23 KZT</p>
                                     </div>
+                                    <div
+                                        class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
+                                        <div
+                                            class="flex items-center justify-center rounded-lg bg-subtle-light dark:bg-subtle-dark shrink-0 size-12 text-muted-light dark:text-muted-dark">
+                                            <span class="material-symbols-outlined">restaurant</span>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <p class="font-medium">Кафе "Coffee Boom"</p>
+                                            <p class="text-sm text-muted-light dark:text-muted-dark">Рестораны</p>
+                                        </div>
+                                        <p class="font-medium shrink-0">-42.50 KZT</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div id="view-spending" class="pt-8 tab-view hidden">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                            <div>
-                                <h3 class="text-xl font-bold mb-4">Анализ расходов за месяц</h3>
-                                <div id="spending-chart"
-                                    class="space-y-4 p-6 bg-subtle-light/50 dark:bg-subtle-dark/50 rounded-xl"></div>
-                            </div>
-                            <div class="bg-primary/5 dark:bg-primary/10 p-6 rounded-lg border border-primary/20">
-                                <h3 class="text-lg font-bold text-primary mb-2">Ключевые возможности для оптимизации
-                                </h3>
-                                <ul id="sales-opportunities"
-                                    class="list-disc list-inside space-y-2 text-foreground-light/90 dark:text-foreground-dark/90">
-                                </ul>
-                            </div>
+                        <h3 class="text-xl font-bold mb-4">Анализ расходов за месяц</h3>
+                        <div id="spending-chart"
+                            class="space-y-4 p-6 bg-subtle-light/50 dark:bg-subtle-dark/50 rounded-xl">
                         </div>
                     </div>
                 </div>
-
-                <div class="mt-12">
-                    <h2 class="text-2xl font-bold mb-6">Продукты Zaman Bank</h2>
-                    <div id="bank-products" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    </div>
-                </div>
-
             </div>
         </main>
 
         <footer
-            class="bg-background-light dark:bg-background-dark border-t border-border-light dark:border-border-dark mt-8">
+            class="bg-background-light dark:bg-background-dark border-t border-border-light dark:border-border-dark">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <p class="text-center text-sm text-muted-light dark:text-muted-dark">© 2025 Zaman Bank. Все права
                     защищены.</p>
@@ -177,75 +179,55 @@
 
     <script>
         const zamanPersonalizedData = [
-            { "id": 0, "type": "Клиентский профиль и анализ трат", "client_details": { "name": "Айгерим", "age": 29, "status": "Зарплатный клиент", "city": "Алматы", "current_product": "Карта для путешествий", "avg_monthly_balance_kzt": 92643 }, "financial_summary_kzt": { "monthly_salary_in_kzt": 488634, "loan_payment_out_avg": 117151, "top_spending_category_1": "Продукты питания (157,000+)", "top_spending_category_2": "Развлечения/Хобби (148,000+)", "top_spending_category_3": "Кафе и рестораны (102,000+)", "key_sales_opportunities": ["Рефинансирование/оптимизация текущего займа (117,151 KZT/мес.)", "Конвертация трат на Кафе (102,000 KZT/мес) в Депозит Мудараба.", "Замена текущей карты на Исламскую Цифровую Карту."] } },
-            { "id": 101, "type": "Карта", "name": "Исламская Цифровая Карта", "description": "Первая цифровая карта, полностью соответствующая принципам Шариата. Не имеет процентов (Риба), предлагает кэшбэк (Хиба) и подходит для всех ежедневных расходов." },
-            { "id": 201, "type": "Депозит", "name": "Инвестиционный Вклад 'Мудараба'", "description": "Вклад для получения дохода, основанного на фактической прибыли от разрешенных (халяльных) инвестиций банка. Доход делится согласно заранее оговоренной пропорции." },
-            { "id": 301, "type": "Кредит/Рефинансирование", "name": "Этичное Рефинансирование 'Вакала'", "description": "Перевод действующих займов в исламское финансирование для снижения общей долговой нагрузки и исключения Риба (процентов)." },
-            { "id": 401, "type": "Бизнес", "name": "Финансирование Бизнеса 'Мушарака'", "description": "Решение для предпринимателей. Банк становится временным или постоянным партнером, разделяя риски и выгоды." }
+            { "id": 0, "type": "Клиентский профиль и анализ трат", "name": "Айгерим (Клиент 1) - Финансовый портрет и привычки", "description": "Агрегированные данные о доходах и расходах клиента за последние 3 месяца. Используются для проактивных и персонализированных рекомендаций по продуктам и смене привычек.", "client_details": { "name": "Айгерим", "age": 29, "status": "Зарплатный клиент", "city": "Алматы", "current_product": "Карта для путешествий (неисламский продукт)", "avg_monthly_balance_kzt": 92643 }, "financial_summary_kzt": { "monthly_salary_in_kzt": 488634, "loan_payment_out_avg": 117151, "top_spending_category_1": "Продукты питания (157,000+)", "top_spending_category_2": "Развлечения/Хобби (148,000+)", "top_spending_category_3": "Кафе и рестораны (102,000+)", "key_sales_opportunities": ["Рефинансирование/оптимизация текущего займа (117,151 KZT/мес.)", "Конвертация трат на Кафе (102,000 KZT/мес) в Депозит Мудараба.", "Замена текущей карты на Исламскую Цифровую Карту."] } },
+            { "id": 101, "type": "Карта", "name": "Исламская Цифровая Карта", "principle": "Мурабаха (Murabaha) и Вакала (Wakalah)", "description": "Первая цифровая карта, полностью соответствующая принципам Шариата. Не имеет процентов (Риба), предлагает кэшбэк (Хиба) и подходит для всех ежедневных расходов.", "advantages": ["Полностью безрисковая (нет Риба).", "Кэшбэк до 10% на избранные категории (награда, Хиба).", "Бесплатное обслуживание и мгновенный выпуск."], "sales_pitch_context": "Идеально подходит для Айгерим, чтобы заменить ее текущую неисламскую карту. Рекомендуется для всех ежедневных расходов и получения 'чистого' кэшбэка." },
+            { "id": 201, "type": "Депозит", "name": "Инвестиционный Сберегательный Вклад 'Мудараба' (Mudarabah Deposit)", "principle": "Мудараба (Mudarabah) – совместное инвестирование. Клиент (Рабб-уль-маль) предоставляет капитал, Банк (Мудариб) управляет им.", "description": "Вклад для получения дохода, основанного на фактической прибыли от разрешенных (халяльных) инвестиций банка. Доход делится согласно заранее оговоренной пропорции (например, 70/30). Нет фиксированного процента.", "estimated_profit_share": "До 15% годовых (зависит от фактической прибыли).", "sales_pitch_context": "Рекомендуется Айгерим. Бот должен предложить ей '7-дневный челлендж' по сокращению трат на 'Кафе и Рестораны' (102,000+ KZT/мес) и перенаправить сэкономленные 50,000 KZT/мес на этот вклад, объясняя, что это этичный доход." },
+            { "id": 301, "type": "Кредит/Рефинансирование", "name": "Этичное Рефинансирование 'Вакала' (Wakalah Refinance)", "principle": "Вакала (Wakalah) – агентский договор. Банк выступает агентом по погашению текущих долгов клиента на более выгодных, не-процентных условиях.", "description": "Перевод действующих займов в исламское финансирование для снижения общей долговой нагрузки и исключения Риба (процентов).", "target_goals": ["Оптимизация долга", "Снижение ежемесячных платежей"], "sales_pitch_context": "Прямое предложение для Айгерим. Бот должен использовать ее ежемесячные платежи по займам (117,151 KZT) как триггер, предлагая рефинансирование для снижения 'глубокой долговой нагрузки' и улучшения коэффициента 'Халяльной Чистоты'." },
+            { "id": 401, "type": "Бизнес", "name": "Финансирование Малого Бизнеса по принципу Мушарака (Musharakah Business)", "principle": "Мушарака (Musharakah) – партнерство. Банк и Клиент совместно инвестируют в бизнес, деля прибыль и убытки пропорционально долям.", "description": "Решение для предпринимателей. Банк становится временным или постоянным партнером, разделяя риски и выгоды. Клиент может выкупить долю банка со временем (Мушарака Мутанакиса).", "target_questions": ["бизнес", "открыть дело", "инвестиции", "партнерство", "собственное дело"], "sales_pitch_context": "Продвигается, когда клиент спрашивает о предпринимательстве. Подчеркивайте, что Банк разделяет риск, что соответствует честному и справедливому партнерству, а для Зарплатных клиентов (как Айгерим) это возможность начать бизнес с минимальным риском." }
         ];
-
+    </script>
+    <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // ===== НОВЫЙ КОД для загрузки данных из JSON =====
 
+            // Находим профиль клиента в данных
             const clientProfile = zamanPersonalizedData.find(item => item.type === "Клиентский профиль и анализ трат");
 
             if (clientProfile) {
-                const { client_details, financial_summary_kzt } = clientProfile;
-
+                // Функция для извлечения числа из строки типа "Категория (157,000+)"
                 const parseAmount = (str) => {
                     const match = str.match(/\(([\d,]+)/);
                     return match ? parseInt(match[1].replace(/,/g, ''), 10) : 0;
                 };
-                const parseCategoryName = (str) => str.split('(')[0].trim();
-                const formatCurrency = (num) => `${num.toLocaleString('ru-RU')} KZT`;
 
+                // Функция для извлечения названия категории
+                const parseCategoryName = (str) => str.split('(')[0].trim();
+
+                // Собираем данные о тратах
                 const spendingCategories = {};
-                for (const key in financial_summary_kzt) {
+                let totalMonthlySpending = 0;
+
+                const financialSummary = clientProfile.financial_summary_kzt;
+                for (const key in financialSummary) {
                     if (key.startsWith('top_spending_category')) {
-                        const amount = parseAmount(financial_summary_kzt[key]);
-                        const name = parseCategoryName(financial_summary_kzt[key]);
-                        if (name && amount > 0) spendingCategories[name] = amount;
+                        const amount = parseAmount(financialSummary[key]);
+                        const name = parseCategoryName(financialSummary[key]);
+                        if (name && amount > 0) {
+                            spendingCategories[name] = amount;
+                            totalMonthlySpending += amount;
+                        }
                     }
                 }
-                document.getElementById('client-name').textContent = client_details.name;
-                document.getElementById('total-balance').textContent = formatCurrency(client_details.avg_monthly_balance_kzt);
-                document.getElementById('monthly-salary').textContent = formatCurrency(financial_summary_kzt.monthly_salary_in_kzt);
-                document.getElementById('loan-payment').textContent = formatCurrency(financial_summary_kzt.loan_payment_out_avg);
 
-                const accountsList = document.getElementById('accounts-list');
-                accountsList.insertAdjacentHTML('afterbegin', `
-                    <div class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
-                        <div class="flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-12 text-primary"><span class="material-symbols-outlined">credit_card</span></div>
-                        <div class="flex-grow"><p class="font-medium">${client_details.current_product}</p><p class="text-sm text-muted-light dark:text-muted-dark">Текущая карта</p></div>
-                        <p class="font-medium shrink-0 text-muted-light dark:text-muted-dark">-</p>
-                    </div>`);
+                // Обновляем элементы на странице
+                document.getElementById('client-name').textContent = clientProfile.client_details.name;
+                document.getElementById('total-balance').textContent = `${clientProfile.client_details.avg_monthly_balance_kzt.toLocaleString('ru-RU')} KZT`;
+                document.getElementById('monthly-spending').textContent = `${totalMonthlySpending.toLocaleString('ru-RU')} KZT`;
 
-                const transactionsList = document.getElementById('transactions-list');
-                transactionsList.insertAdjacentHTML('afterbegin', `
-                    <div class="flex items-center gap-4 p-4 border border-border-light dark:border-border-dark rounded-lg">
-                        <div class="flex items-center justify-center rounded-lg bg-subtle-light dark:bg-subtle-dark shrink-0 size-12 text-muted-light dark:text-muted-dark"><span class="material-symbols-outlined">payments</span></div>
-                        <div class="flex-grow"><p class="font-medium">Ежемесячный платеж по кредиту</p><p class="text-sm text-muted-light dark:text-muted-dark">Автоплатеж</p></div>
-                        <p class="font-medium shrink-0">-${formatCurrency(financial_summary_kzt.loan_payment_out_avg)}</p>
-                    </div>`);
-
-
-                const opportunitiesList = document.getElementById('sales-opportunities');
-                financial_summary_kzt.key_sales_opportunities.forEach(opp => {
-                    opportunitiesList.innerHTML += `<li>${opp}</li>`;
-                });
-
+                // Отрисовываем график с новыми данными
                 renderSpendingChart(spendingCategories);
             }
-
-            const productsContainer = document.getElementById('bank-products');
-            zamanPersonalizedData.filter(item => item.type !== "Клиентский профиль и анализ трат").forEach(product => {
-                productsContainer.innerHTML += `
-                    <div class="p-6 border border-border-light dark:border-border-dark rounded-lg bg-subtle-light/30 dark:bg-subtle-dark/30">
-                        <h4 class="font-bold text-lg text-primary">${product.name}</h4>
-                        <p class="text-sm text-muted-light dark:text-muted-dark mt-1">${product.type}</p>
-                        <p class="mt-3 text-foreground-light/90 dark:text-foreground-dark/90">${product.description}</p>
-                    </div>
-                `;
-            });
+            // ===== КОНЕЦ НОВОГО КОДА =====
 
 
             const tabs = document.querySelectorAll('.tab-link');
@@ -256,16 +238,14 @@
                     const isActive = tab.id === `tab-${targetId}`;
                     tab.classList.toggle('border-primary', isActive);
                     tab.classList.toggle('text-primary', isActive);
+                    tab.classList.toggle('border-transparent', !isActive);
+                    tab.classList.toggle('text-muted-light', !isActive);
+                    tab.classList.toggle('dark:text-muted-dark', !isActive);
                 });
-                views.forEach(view => view.classList.toggle('hidden', view.id !== `view-${targetId}`));
+                views.forEach(view => {
+                    view.classList.toggle('hidden', view.id !== `view-${targetId}`);
+                });
             }
-
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    switchTab(this.id.replace('tab-', ''));
-                });
-            });
 
             function renderSpendingChart(categories) {
                 const chartContainer = document.getElementById('spending-chart');
@@ -282,7 +262,7 @@
                         <div class="text-sm">
                             <div class="flex justify-between font-medium mb-1">
                                 <span>${category}</span>
-                                <span>${percentage}% (${formatCurrency(Math.round(amount))})</span>
+                                <span>${percentage}% (${Math.round(amount).toLocaleString('ru-RU')} KZT)</span>
                             </div>
                             <div class="w-full bg-border-light dark:bg-border-dark rounded-full h-2.5">
                                 <div class="h-2.5 rounded-full" style="width: ${percentage}%; ${barColorStyle}"></div>
@@ -291,6 +271,14 @@
                 }
                 chartContainer.innerHTML = htmlContent;
             }
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const targetId = this.id.replace('tab-', '');
+                    switchTab(targetId);
+                });
+            });
         });
     </script>
 </body>
