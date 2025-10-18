@@ -16,7 +16,6 @@ import threading
 load_dotenv()
 
 # --- КОНФИГУРАЦИЯ БЭКЕНДА И API ---
-# Убедитесь, что у вас есть файл .env с ключом API_KEY
 API_KEY = os.getenv("API_KEY")
 BASE_URL = "https://openai-hub.neuraldeep.tech"
 LLM_MODEL = "gpt-4o-mini"
@@ -35,11 +34,7 @@ app.add_middleware(
 )
 
 # --- КОНФИГУРАЦИЯ СТАТИКИ И ШАБЛОНОВ ---
-# 1. Монтируем StaticFiles на /static/
-# Все файлы в папке static будут доступны по пути /static/...
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# ПУТИ К HTML-файлам (Они находятся в static)
 INDEX_HTML_PATH = "./static/index.html"
 CHAT_HTML_PATH = "./static/chat.html"
 # ---------------------------------------
@@ -61,8 +56,8 @@ except Exception as e:
 def load_personalized_client_context() -> str:
     """Загружает статический профиль клиента (Айгерим) из RAG JSON-файла."""
     try:
-        # Убедитесь, что файл лежит в корне проекта
-        with open("zaman_personalized_rag_data.json", "r", encoding="utf-8") as f:
+        # ===== ИСПРАВЛЕННЫЙ ПУТЬ ↓ =====
+        with open("data/zaman_personalized_rag_data.json", "r", encoding="utf-8") as f:
             data = json.load(f)
             client_profile = next(item for item in data if item.get("id") == 0)
 
@@ -78,6 +73,7 @@ def load_personalized_client_context() -> str:
             )
             return context_str
     except (FileNotFoundError, IndexError):
+        print("❌ КРИТИЧЕСКАЯ ОШИБКА: data/zaman_personalized_rag_data.json не найден.")
         return "Статическая информация о клиенте недоступна."
     except Exception as e:
         print(f"⚠️ Ошибка при загрузке персонализированного контекста: {e}")
@@ -85,15 +81,16 @@ def load_personalized_client_context() -> str:
 
 
 STATIC_CLIENT_PROFILE = load_personalized_client_context()
-print("👤 Статический профиль клиента загружен для персонализации.")
+if "недоступна" not in STATIC_CLIENT_PROFILE:
+    print("👤 Статический профиль клиента загружен для персонализации.")
 
 
 # --- ЗАГРУЗКА СРАВНИТЕЛЬНОЙ АНАЛИТИКИ (БЕНЧМАРКИ) ---
 def load_benchmark_data() -> str:
     """Загружает данные для сравнительной аналитики (бенчмарков) из JSON-файла."""
     try:
-        # Убедитесь, что файл лежит в корне проекта
-        with open("zaman_benchmark_data.json", "r", encoding="utf-8") as f:
+        # ===== ИСПРАВЛЕННЫЙ ПУТЬ ↓ =====
+        with open("data/zaman_benchmark_data.json", "r", encoding="utf-8") as f:
             benchmarks = json.load(f)
             formatted_benchmarks = []
             for item in benchmarks:
@@ -110,7 +107,7 @@ def load_benchmark_data() -> str:
             return "\n\n---\n\n".join(formatted_benchmarks)
 
     except FileNotFoundError:
-        print("⚠️ ПРЕДУПРЕЖДЕНИЕ: zaman_benchmark_data.json не найден. Сравнительная аналитика будет недоступна.")
+        print("⚠️ ПРЕДУПРЕЖДЕНИЕ: data/zaman_benchmark_data.json не найден. Сравнительная аналитика будет недоступна.")
         return "Сравнительная аналитика недоступна."
     except Exception as e:
         print(f"⚠️ Ошибка при загрузке бенчмарков: {e}")
@@ -118,7 +115,8 @@ def load_benchmark_data() -> str:
 
 
 BENCHMARK_DATA = load_benchmark_data()
-print("📈 Сравнительная аналитика (бенчмарки) загружена.")
+if "недоступна" not in BENCHMARK_DATA:
+    print("📈 Сравнительная аналитика (бенчмарки) загружена.")
 
 
 # --------------------------------------------------------
@@ -147,10 +145,11 @@ class AnalyzeResponse(BaseModel):
 def analyze_mock_transactions() -> AnalyzeResponse:
     """Имитация интеллектуального анализа."""
     try:
-        # Убедитесь, что файл лежит в корне проекта
-        with open("mock_transactions.json", "r", encoding="utf-8") as f:
+        # ===== ИСПРАВЛЕННЫЙ ПУТЬ ↓ =====
+        with open("data/mock_transactions.json", "r", encoding="utf-8") as f:
             transactions = json.load(f)
     except FileNotFoundError:
+        print("❌ КРИТИЧЕСКАЯ ОШИБКА: data/mock_transactions.json не найден.")
         return AnalyzeResponse(summary="Ошибка: mock_transactions.json не найден.", categories={})
 
     categories: Dict[str, float] = {}
@@ -170,14 +169,12 @@ def analyze_mock_transactions() -> AnalyzeResponse:
 
     sorted_categories = dict(sorted(categories.items(), key=lambda item: item[1], reverse=True))
 
-    # Формируем ДИНАМИЧЕСКИЙ саммари
     dynamic_summary = (
-            f"Клиент получил {total_income} KZT дохода и потратил {total_expense} KZT. "
-            f"Основные траты за последний период: " + ", ".join(
-        [f"{k} ({v:.0f} KZT)" for k, v in sorted_categories.items()])
+        f"Клиент получил {total_income} KZT дохода и потратил {total_expense} KZT. "
+        f"Основные траты за последний период: " + ", ".join(
+            [f"{k} ({v:.0f} KZT)" for k, v in sorted_categories.items()])
     )
 
-    # ОБЪЕДИНЯЕМ СТАТИЧЕСКИЙ И ДИНАМИЧЕСКИЙ КОНТЕКСТ
     full_context = (
         f"СТАТИЧЕСКИЙ ПРОФИЛЬ (Из базы знаний продаж): {STATIC_CLIENT_PROFILE}\n\n"
         f"ДИНАМИЧЕСКИЙ АНАЛИЗ ТЕКУЩИХ ТРАНЗАКЦИЙ: {dynamic_summary}"
@@ -200,7 +197,7 @@ async def get_embedding(text: str) -> list[float]:
     except Exception as e:
         print(f"Ошибка API эмбеддинга: {e}")
         return []
-
+    
 
 def query_vector_db(embedding: list[float]) -> str:
     """Ищет в ChromaDB релевантные документы."""
@@ -220,7 +217,7 @@ async def get_llm_response(session_id: str, user_message: str) -> str:
     """
     # 1. Получаем ПОЛНЫЙ финансовый контекст (статика + динамика)
     user_context = USER_STATE_CACHE.get(session_id, {}).get("summary",
-                                                            "Финансовый анализ еще не проводился. Попросите клиента нажать 'Загрузить выписку'.")
+                                                             "Финансовый анализ еще не проводился. Попросите клиента нажать 'Загрузить выписку'.")
 
     # 2. RAG: Ищем релевантные продукты/советы
     query_embedding = await get_embedding(f"Сообщение клиента: {user_message}. Его контекст: {user_context}")
