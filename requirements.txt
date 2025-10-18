@@ -4,3 +4,4 @@ httpx
 chromadb
 pydantic
 fastapi-cors
+pymssql
