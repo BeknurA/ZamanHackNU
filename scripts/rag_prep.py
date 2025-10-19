@@ -47,7 +47,7 @@ def main():
     # https://www.zamanbank.kz/ru/islamic-finance/otvety-na-v oprosy#question-faq-307 [cite: 34]
     # ...в один файл data.txt
     try:
-        with open("data.txt", "r", encoding="utf-8") as f:
+        with open("../data.txt", "r", encoding="utf-8") as f:
             text_data = f.read()
     except FileNotFoundError:
         print("Ошибка: Файл data.txt не найден. Создайте его, скопировав текст с URL-адресов банка.")

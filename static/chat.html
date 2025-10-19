@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
@@ -13,433 +12,287 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#2D9A86",
-                        "accent": "#EEFE6D",
-                        "background-light": "#ffffff",
-                        "background-dark": "#101922",
-                        "text-light": "#101922",
-                        "text-dark": "#ffffff",
-                        "subtle-light": "#f3f4f6",
-                        "subtle-dark": "#1b2837",
+                        "primary": "#2D9A86", "accent": "#EEFE6D", "background-light": "#ffffff",
+                        "background-dark": "#101922", "text-light": "#101922", "text-dark": "#ffffff",
+                        "subtle-light": "#f3f4f6", "subtle-dark": "#1b2837", "border-light": "#e5e7eb",
+                        "border-dark": "#374151", "placeholder-light": "#6b7280", "placeholder-dark": "#9ca3af"
                     },
                     fontFamily: { "display": ["Manrope", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px" },
                 },
             },
         }
     </script>
     <style>
-        #chat-window::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        #chat-window::-webkit-scrollbar-thumb {
-            background-color: #d1d5db;
-            border-radius: 4px;
-        }
-
-        /* Анимация печати */
-        .typing-indicator {
-            display: inline-flex;
-            gap: 4px;
-            align-items: center;
-        }
-
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            background-color: #2D9A86;
-            border-radius: 50%;
-            animation: bounce 1.4s infinite;
-        }
-
-        .typing-indicator span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-indicator span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes bounce {
-
-            0%,
-            60%,
-            100% {
-                transform: translateY(0);
-            }
-
-            30% {
-                transform: translateY(-10px);
-            }
-        }
-
-        /* Плавное появление сообщений */
-        .message-enter {
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Стили для быстрых кнопок */
-        .quick-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .quick-btn {
-            transition: all 0.2s ease;
-        }
+        #chat-window::-webkit-scrollbar { width: 8px; }
+        #chat-window::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 4px; }
+        #chat-window::-webkit-scrollbar-track { background-color: #f3f4f6; }
+        .dark #chat-window::-webkit-scrollbar-thumb { background-color: #4b5563; }
+        .dark #chat-window::-webkit-scrollbar-track { background-color: #1f2937; }
+        .typing-indicator { display: inline-flex; gap: 4px; align-items: center; }
+        .typing-indicator span { width: 8px; height: 8px; background-color: #2D9A86; border-radius: 50%; animation: bounce 1.4s infinite; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
+        .message-enter { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .quick-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .quick-btn { transition: all 0.2s ease; }
+        #mic-button { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.3s, box-shadow 0.3s; border: 1px solid #ccc; background-color: #f9fafb; }
+        .dark #mic-button { background-color: #374151; border-color: #4b5563; }
+        #mic-button.recording { background-color: #ef4444; border-color: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.4); animation: pulse 1.5s infinite; }
+        #mic-button.processing { background-color: #eab308; border-color: #eab308; cursor: not-allowed; }
+        #mic-icon { fill: #6b7280; transition: fill 0.3s; }
+        .dark #mic-icon { fill: #9ca3af; }
+        #mic-button.recording #mic-icon { fill: white; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
     </style>
 </head>
-
-<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+<body class="bg-subtle-light dark:bg-subtle-dark font-display text-text-light dark:text-text-dark">
     <div class="flex flex-col min-h-screen">
-        <header
-            class="flex items-center justify-between px-6 py-4 border-b border-subtle-light/80 dark:border-subtle-dark/50 bg-white dark:bg-background-dark shadow-sm">
-            <div class="flex items-center gap-4">
-                <a href="/" class="hover:opacity-80 transition-opacity">
-                    <img src="/static/images/Logo-colors.svg" alt="Zaman Bank Logo" class="h-12">
-                </a>
+        <header class="flex items-center justify-between px-6 py-3 border-b border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark shadow-sm sticky top-0 z-10">
+            <div class="flex items-center gap-3">
+                <a href="/" class="hover:opacity-80 transition-opacity"><img src="/static/images/Logo-colors.svg" alt="Zaman Bank Logo" class="h-10"></a>
                 <div class="flex flex-col">
-                    <span class="text-sm font-semibold">Zaman AI Assistant</span>
-                    <span class="text-xs text-gray-500">Ваш финансовый друг 24/7</span>
+                    <span class="text-base font-semibold">Zaman AI Assistant</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Ваш финансовый друг 24/7</span>
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <button id="theme-toggle"
-                    class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                    🌙
+                <button id="theme-toggle" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <svg id="theme-icon-light" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="theme-icon-dark" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                 </button>
-                <div class="w-10 h-10 bg-center bg-no-repeat bg-cover rounded-full border-2 border-primary"
-                    style='background-image: url("https://i.pravatar.cc/40?u=aigerim");'></div>
+                <div class="w-9 h-9 bg-center bg-no-repeat bg-cover rounded-full border-2 border-primary" style='background-image: url("https://i.pravatar.cc/40?u=aigerim");'></div>
             </div>
         </header>
 
         <main class="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-            <div class="w-full max-w-2xl mx-auto flex flex-col items-center text-center">
-                <div id="initial-prompt" class="w-full">
-                    <div class="mb-6">
-                        <div class="text-6xl mb-4">🤖</div>
-                        <h2 class="text-3xl font-bold tracking-tight sm:text-4xl mb-4">Спросите меня о чем угодно</h2>
-                        <p class="mt-4 text-gray-600 dark:text-gray-400 max-w-lg mx-auto">
-                            Я помогу разобраться с финансами, подберу исламские продукты и просто поддержу в трудную
-                            минуту
-                        </p>
+            <section id="chat-interface" class="flex-1 w-full max-w-3xl mx-auto flex flex-col h-full">
+                <div id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900 rounded-t-lg"></div>
+                <form id="chat-form" class="p-4 border-t border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark rounded-b-lg">
+                    <div class="flex gap-2 mb-3 items-center">
+                        <input type="text" id="chat-input" placeholder="Введите или надиктуйте сообщение..." class="flex-1 p-3 border border-border-light dark:border-border-dark rounded-lg bg-background-light dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm" autocomplete="off">
+                        <button type="button" id="mic-button" title="Начать/Остановить запись голоса" class="flex-shrink-0 bg-subtle-light dark:bg-subtle-dark border-border-light dark:border-border-dark">
+                            <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 0 24 24" width="20px">
+                                <path d="M0 0h24v24H0V0z" fill="none"/>
+                                <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/>
+                            </svg>
+                        </button>
+                        <button type="submit" id="send-button" class="px-5 py-2.5 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm">Отправить</button>
                     </div>
-                </div>
-            </div>
+                    <div class="flex gap-2 mb-3">
+                        <button type="button" id="analyze-button" class="flex-1 px-4 py-2 bg-accent text-primary rounded-lg font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50 text-sm">📊 Загрузить выписку</button>
+                        <button type="button" id="goal-button" class="flex-1 px-4 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-lg font-semibold hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors disabled:opacity-50 text-sm">🎯 Предложить цель</button>
+                    </div>
+                    <div id="quick-actions" class="flex flex-wrap gap-2">
+                        <button type="button" class="quick-btn px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600" data-message="Как мне сэкономить на кафе и ресторанах?">💰 Сэкономить на кафе</button>
+                        <button type="button" class="quick-btn px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600" data-message="Что такое Мурабаха? Объясни простыми словами">📚 Что такое Мурабаха?</button>
+                        <button type="button" class="quick-btn px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600" data-message="Посоветуй продукт для инвестиций">📈 Инвестиции</button>
+                        <button type="button" class="quick-btn px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600" data-message="Как мне избавиться от долгов?">🎯 Погасить долги</button>
+                        <button type="button" class="quick-btn px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600" data-message="Сравни мои траты с другими клиентами">📊 Сравнить с другими</button>
+                    </div>
+                </form>
+            </section>
         </main>
-
-        <section id="chat-interface" class="flex-1 w-full max-w-3xl mx-auto flex flex-col h-full hidden">
-            <div id="chat-window" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900"></div>
-
-            <form id="chat-form"
-                class="p-4 border-t border-subtle-light dark:border-subtle-dark bg-background-light dark:bg-background-dark">
-                <div class="flex gap-2 mb-3">
-                    <input type="text" id="chat-input" placeholder="Введите ваше сообщение..."
-                        class="flex-1 p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                        autocomplete="off">
-                    <button type="submit" id="send-button"
-                        class="px-6 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        Отправить
-                    </button>
-                </div>
-
-                <div class="flex gap-2 mb-3">
-                    <button type="button" id="analyze-button"
-                        class="flex-1 px-4 py-2 bg-accent text-primary rounded-lg font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50">
-                        📊 Загрузить выписку
-                    </button>
-                    <button type="button" id="goal-button"
-                        class="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition-colors disabled:opacity-50">
-                        🎯 Предложить цель
-                    </button>
-                </div>
-
-                <!-- Быстрые кнопки -->
-                <div id="quick-actions" class="flex flex-wrap gap-2">
-                    <button type="button"
-                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
-                        data-message="Как мне сэкономить на кафе и ресторанах?">
-                        💰 Сэкономить на кафе
-                    </button>
-                    <button type="button"
-                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
-                        data-message="Что такое Мурабаха? Объясни простыми словами">
-                        📚 Что такое Мурабаха?
-                    </button>
-                    <button type="button"
-                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
-                        data-message="Посоветуй продукт для инвестиций">
-                        📈 Инвестиции
-                    </button>
-                    <button type="button"
-                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
-                        data-message="Как мне избавиться от долгов?">
-                        🎯 Погасить долги
-                    </button>
-                    <button type="button"
-                        class="quick-btn px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700"
-                        data-message="Сравни мои траты с другими клиентами">
-                        📊 Сравнить с другими
-                    </button>
-                </div>
-            </form>
-        </section>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const chatInterface = document.getElementById('chat-interface');
-            const initialPrompt = document.getElementById('initial-prompt');
-            const chatWindow = document.getElementById('chat-window');
-            const chatForm = document.getElementById('chat-form');
-            const chatInput = document.getElementById('chat-input');
-            const sendButton = document.getElementById('send-button');
-            const analyzeButton = document.getElementById('analyze-button');
-            const goalButton = document.getElementById('goal-button');
-            const quickButtons = document.querySelectorAll('.quick-btn');
-            const themeToggle = document.getElementById('theme-toggle');
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Приложение запущено');
+        const chatWindow = document.getElementById('chat-window');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const analyzeButton = document.getElementById('analyze-button');
+        const goalButton = document.getElementById('goal-button');
+        const quickButtons = document.querySelectorAll('.quick-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIconLight = document.getElementById('theme-icon-light');
+        const themeIconDark = document.getElementById('theme-icon-dark');
+        const micButton = document.getElementById('mic-button');
 
-            const sessionId = 'user_' + Math.random().toString(36).substring(2, 9);
-            let isTyping = false;
-            let analysisLoaded = false;
+        const sessionId = 'user_' + Math.random().toString(36).substring(2, 9);
+        console.log('🆔 Session ID:', sessionId);
+        let isTyping = false, analysisLoaded = false, mediaRecorder, audioChunks = [], isRecording = false, audioStream;
 
-            // Переключение темы
-            themeToggle.addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark');
-                themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
-                localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-            });
+        function setTheme(isDark) {
+            if (isDark) { document.documentElement.classList.add('dark'); themeIconLight.classList.add('hidden'); themeIconDark.classList.remove('hidden'); localStorage.setItem('theme', 'dark'); }
+            else { document.documentElement.classList.remove('dark'); themeIconLight.classList.remove('hidden'); themeIconDark.classList.add('hidden'); localStorage.setItem('theme', 'light'); }
+        }
 
-            // Загрузка сохраненной темы
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark') {
-                document.documentElement.classList.add('dark');
-                themeToggle.textContent = '☀️';
+        function appendMessage(role, content, isHTML = false) {
+            const messageElement = document.createElement('div'), isUser = role === 'user', isSystem = role === 'system';
+            messageElement.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 message-enter`;
+            let bgClass, icon, iconBg;
+            if (isUser) { bgClass = 'bg-primary text-white rounded-tr-none'; icon = '👤'; iconBg = 'bg-primary/20'; }
+            else if (isSystem) { bgClass = 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 rounded-lg border-l-4 border-yellow-500 italic'; icon = '⚙️'; iconBg = 'bg-yellow-200 dark:bg-yellow-800'; }
+            else { bgClass = 'bg-background-light dark:bg-subtle-dark text-text-light dark:text-text-dark rounded-tl-none border border-border-light dark:border-border-dark'; icon = '🤖'; iconBg = 'bg-primary/10'; }
+            const safeContent = isHTML ? content.replace(/<script.*?>.*?<\/script>/gi, '') : content.replace(/\n/g, '<br>');
+            messageElement.innerHTML = `<div class="max-w-xs sm:max-w-md lg:max-w-lg ${bgClass} p-3 rounded-xl shadow-md"><div class="flex items-start gap-2"><div class="flex-shrink-0 w-7 h-7 rounded-full ${iconBg} flex items-center justify-center text-sm mt-0.5">${icon}</div><div class="flex-1 text-sm leading-relaxed">${safeContent}</div></div></div>`;
+            chatWindow.appendChild(messageElement);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.id = 'typing-indicator';
+            indicator.className = 'flex justify-start mb-4 message-enter';
+            indicator.innerHTML = '<div class="bg-background-light dark:bg-subtle-dark p-3 rounded-xl rounded-tl-none shadow-md border border-border-light dark:border-border-dark"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">🤖</div><div class="typing-indicator"><span></span><span></span><span></span></div></div></div>';
+            chatWindow.appendChild(indicator);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function hideTypingIndicator() { const indicator = document.getElementById('typing-indicator'); if (indicator) indicator.remove(); }
+
+        async function fetchAPI(endpoint, options) {
+    console.log(`🔵 Запрос к ${endpoint}:`, options);
+
+    // --- Логика блокировки кнопок и индикатора печати ---
+    if (endpoint !== '/api/analyze' && endpoint !== '/api/suggest-goal') {
+        isTyping = true; sendButton.disabled = true;
+        const isFileUpload = options.body && options.body instanceof FormData;
+        if (!isFileUpload) {
+            sendButton.textContent = '...';
+        }
+        showTypingIndicator();
+    }
+    else if (endpoint === '/api/analyze') { analyzeButton.disabled = true; analyzeButton.textContent = '⏳ Загрузка...'; }
+    else if (endpoint === '/api/suggest-goal') { goalButton.disabled = true; goalButton.textContent = '⏳ Анализ...'; }
+
+    // --- КОРРЕКЦИЯ ДЛЯ ЗАГОЛОВКОВ ---
+    let finalOptions = { ...options };
+    if (typeof finalOptions.body === 'string' && finalOptions.method === 'POST') {
+        finalOptions.headers = {
+            'Content-Type': 'application/json',
+            ...(finalOptions.headers || {})
+        };
+    }
+    // --------------------------------
+
+    try {
+        console.log(`📤 Отправка fetch к ${endpoint}...`);
+        const response = await fetch(endpoint, finalOptions); // Используем finalOptions
+        console.log(`📥 Ответ получен: ${response.status} ${response.statusText}`);
+
+        // Перенесено в finally, чтобы гарантировать скрытие индикатора даже при ошибке
+        // hideTypingIndicator();
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: `Ошибка сервера: ${response.status}` }));
+            console.error(`❌ HTTP ошибка от ${endpoint}:`, errorData);
+            throw new Error(errorData.detail || `Ошибка сервера: ${response.status}`);
+        }
+        const jsonData = await response.json();
+        console.log(`✅ JSON данные от ${endpoint}:`, jsonData);
+        return jsonData;
+    } catch (error) {
+        console.error(`❌ Ошибка API ${endpoint}:`, error);
+        // hideTypingIndicator(); // Перенесено в finally
+        appendMessage('assistant', `⚠️ Ошибка: ${error.message || 'Проблема с подключением к серверу.'}`);
+        return null;
+    }
+    finally {
+        // ЭТОТ БЛОК ГАРАНТИРУЕТ, что индикатор скрывается, а кнопки восстанавливаются
+        isTyping = false;
+        sendButton.disabled = false;
+        sendButton.textContent = 'Отправить';
+        hideTypingIndicator(); // Скрываем индикатор в любом случае
+
+        if (endpoint === '/api/analyze' && !analysisLoaded) {
+            analyzeButton.disabled = false; analyzeButton.textContent = '📊 Загрузить выписку';
+        } else if (endpoint === '/api/analyze' && analysisLoaded) {
+            analyzeButton.textContent = '✓ Выписка загружена';
+        }
+        if (endpoint === '/api/suggest-goal') {
+            goalButton.disabled = false; goalButton.textContent = '🎯 Предложить цель';
+        }
+        console.log(`🔚 fetchAPI завершен для ${endpoint}`);
+    }
+}
+
+        async function sendMessage(message) {
+            if (!message.trim() || isTyping || chatInput.disabled) { console.log('❌ sendMessage blocked:', { isEmpty: !message.trim(), isTyping, isDisabled: chatInput.disabled }); return; }
+            console.log('✅ Отправка сообщения:', message);
+            appendMessage('user', message);
+            chatInput.value = '';
+            const data = await fetchAPI('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId, message: message }) });
+            if (data) { console.log('✅ Получен ответ от /api/chat:', data); appendMessage('assistant', data.content, true); } else { console.error('❌ Нет данных от /api/chat'); }
+        }
+
+        async function analyzeTransactions() {
+            if (analysisLoaded) return;
+            appendMessage('system', '🤖 Анализирую вашу финансовую выписку и загружаю персональный контекст...');
+            const data = await fetchAPI('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) });
+            if (data) { const lines = data.summary.split('\n\n'); const userSummary = lines.length > 1 ? lines[1] : lines[0]; appendMessage('assistant', `✅ Выписка загружена!\n\n${userSummary}\n\nТеперь я могу дать персонализированные советы. О чем хотите поговорить?`, true); analysisLoaded = true; analyzeButton.textContent = '✓ Выписка загружена'; analyzeButton.disabled = true; goalButton.disabled = false; }
+        }
+
+        async function suggestGoal() {
+            if (!analysisLoaded) { appendMessage('assistant', '⚠️ Сначала загрузите выписку, чтобы я мог проанализировать вашу ситуацию и предложить подходящую цель.'); return; }
+            appendMessage('system', '🎯 Анализирую вашу финансовую ситуацию и подбираю оптимальную цель...');
+            const data = await fetchAPI('/api/suggest-goal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) });
+            if (data) { appendMessage('assistant', data.formatted_message, true); }
+        }
+
+        async function startRecording() {
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { throw new Error('Ваш браузер не поддерживает запись аудио.'); }
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+                mediaRecorder.ondataavailable = event => { if (event.data.size > 0) audioChunks.push(event.data); };
+                mediaRecorder.onstop = sendAudioToServer;
+                audioChunks = [];
+                mediaRecorder.start();
+                isRecording = true;
+                micButton.classList.add('recording');
+                micButton.classList.remove('processing');
+                appendMessage('system', '🎙️ Говорите... Нажмите кнопку еще раз, чтобы остановить.');
+                chatInput.placeholder = 'Идет запись...';
+                chatInput.disabled = true;
+            } catch (err) { console.error("Ошибка доступа к микрофону:", err); appendMessage('system', `⚠️ ${err.message || 'Не удалось получить доступ к микрофону. Проверьте разрешения.'}`); resetMicButton(); }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+                audioStream?.getTracks().forEach(track => track.stop());
+                isRecording = false;
+                micButton.classList.remove('recording');
+                micButton.classList.add('processing');
+                appendMessage('system', '🎤 Запись остановлена. Обрабатываю...');
+                chatInput.placeholder = 'Обработка голоса...';
             }
+        }
 
-            // Показываем интерфейс чата
-            initialPrompt.classList.add('hidden');
-            chatInterface.classList.remove('hidden');
+        async function sendAudioToServer() {
+            if (audioChunks.length === 0) { console.warn("Нет аудио данных для отправки."); resetMicButton(); appendMessage('system', '⚠️ Запись была пустой.'); return; }
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append('file', audioBlob, `audio-${sessionId}-${Date.now()}.webm`);
+            formData.append('session_id', sessionId);
+            const data = await fetchAPI('/api/voice', { method: 'POST', body: formData });
+            resetMicButton();
+            if (data) { if (data.transcribed_text) { appendMessage('user', `🗣️ ${data.transcribed_text}`); } if (data.ai_response_text) { appendMessage('assistant', data.ai_response_text, true); } }
+        }
 
-            function appendMessage(role, content, isHTML = false) {
-                const messageElement = document.createElement('div');
-                const isUser = role === 'user';
-                const isSystem = role === 'system';
+        function resetMicButton() { micButton.classList.remove('recording', 'processing'); isRecording = false; audioChunks = []; chatInput.placeholder = 'Введите или надиктуйте сообщение...'; chatInput.disabled = false; }
 
-                messageElement.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 message-enter`;
+        themeToggle.addEventListener('click', () => setTheme(!document.documentElement.classList.contains('dark')));
+        const savedTheme = localStorage.getItem('theme');
+        setTheme(savedTheme === 'dark');
 
-                let bgClass, textClass, icon, iconBg;
-                if (isUser) {
-                    bgClass = 'bg-primary text-white rounded-tr-none';
-                    icon = '👤';
-                    iconBg = 'bg-primary/20';
-                } else if (isSystem) {
-                    bgClass = 'bg-yellow-100 dark:bg-yellow-900 text-gray-800 dark:text-gray-200 rounded-none border-l-4 border-yellow-500';
-                    icon = '⚙️';
-                    iconBg = 'bg-yellow-200 dark:bg-yellow-800';
-                } else {
-                    bgClass = 'bg-white dark:bg-gray-800 text-text-light dark:text-text-dark rounded-tl-none border border-gray-200 dark:border-gray-700';
-                    icon = '🤖';
-                    iconBg = 'bg-primary/10';
-                }
+        analyzeButton.addEventListener('click', analyzeTransactions);
+        goalButton.addEventListener('click', suggestGoal);
+        goalButton.disabled = true;
 
-                const contentFormatted = isHTML ? content : content.replace(/\n/g, '<br>');
+        quickButtons.forEach(btn => { btn.addEventListener('click', function() { const message = this.getAttribute('data-message'); console.log('⚡ Быстрая кнопка нажата:', message); if (message && !isTyping && !chatInput.disabled) sendMessage(message); }); });
+        micButton.addEventListener('click', () => { if (isRecording) stopRecording(); else startRecording(); });
+        chatInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey && !chatInput.disabled && !isTyping) { e.preventDefault(); const message = chatInput.value.trim(); console.log('⌨️ Enter нажат, сообщение:', message); if (message) { sendMessage(message); } } });
+        chatForm.addEventListener('submit', function(e) { e.preventDefault(); const message = chatInput.value.trim(); console.log('🔘 Submit формы, сообщение:', message); if (message && !isTyping && !chatInput.disabled) { sendMessage(message); } });
 
-                messageElement.innerHTML = `
-                    <div class="max-w-xs md:max-w-md lg:max-w-lg ${bgClass} p-4 rounded-xl shadow-md">
-                        <div class="flex items-start gap-3">
-                            <div class="flex-shrink-0 w-8 h-8 rounded-full ${iconBg} flex items-center justify-center text-lg">
-                                ${icon}
-                            </div>
-                            <div class="flex-1 text-sm leading-relaxed">${contentFormatted}</div>
-                        </div>
-                    </div>
-                `;
-                chatWindow.appendChild(messageElement);
-                chatWindow.scrollTop = chatWindow.scrollHeight;
-            }
-
-            function showTypingIndicator() {
-                const indicator = document.createElement('div');
-                indicator.id = 'typing-indicator';
-                indicator.className = 'flex justify-start mb-4';
-                indicator.innerHTML = `
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl rounded-tl-none shadow-md border border-gray-200 dark:border-gray-700">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                🤖
-                            </div>
-                            <div class="typing-indicator">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                chatWindow.appendChild(indicator);
-                chatWindow.scrollTop = chatWindow.scrollHeight;
-            }
-
-            function hideTypingIndicator() {
-                const indicator = document.getElementById('typing-indicator');
-                if (indicator) indicator.remove();
-            }
-
-            async function sendMessage(message) {
-                if (isTyping || !message.trim()) return;
-
-                appendMessage('user', message);
-                chatInput.value = '';
-                isTyping = true;
-                sendButton.disabled = true;
-                sendButton.textContent = '...';
-
-                showTypingIndicator();
-
-                try {
-                    const response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ session_id: sessionId, message: message }),
-                    });
-
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                    const data = await response.json();
-                    hideTypingIndicator();
-                    appendMessage('assistant', data.content);
-                } catch (error) {
-                    console.error('Ошибка:', error);
-                    hideTypingIndicator();
-                    appendMessage('assistant', 'Извините, произошла ошибка. Попробуйте еще раз через минуту.');
-                } finally {
-                    isTyping = false;
-                    sendButton.disabled = false;
-                    sendButton.textContent = 'Отправить';
-                }
-            }
-
-            async function analyzeTransactions() {
-                if (isTyping) return;
-
-                appendMessage('system', '🤖 Анализирую вашу финансовую выписку и загружаю персональный контекст...');
-                isTyping = true;
-                analyzeButton.disabled = true;
-                analyzeButton.textContent = '⏳ Загрузка...';
-
-                try {
-                    const response = await fetch('/api/analyze', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ session_id: sessionId }),
-                    });
-
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                    const data = await response.json();
-                    const lines = data.summary.split('\n\n');
-                    const userSummary = lines.length > 1 ? lines[1] : lines[0];
-
-                    appendMessage('assistant', `✅ Выписка загружена!\n\n${userSummary}\n\nТеперь я могу дать персонализированные советы. О чем хотите поговорить?`);
-                    analysisLoaded = true;
-                    analyzeButton.textContent = '✓ Выписка загружена';
-                    goalButton.disabled = false;
-                } catch (error) {
-                    console.error('Ошибка анализа:', error);
-                    appendMessage('assistant', '⚠️ Не удалось загрузить выписку. Проверьте подключение к серверу.');
-                    analyzeButton.textContent = '📊 Загрузить выписку';
-                    analyzeButton.disabled = false;
-                } finally {
-                    isTyping = false;
-                }
-            }
-
-            async function suggestGoal() {
-                if (isTyping) return;
-
-                if (!analysisLoaded) {
-                    appendMessage('assistant', '⚠️ Сначала загрузите выписку, чтобы я мог проанализировать вашу ситуацию и предложить подходящую цель.');
-                    return;
-                }
-
-                appendMessage('system', '🎯 Анализирую вашу финансовую ситуацию и подбираю оптимальную цель...');
-                isTyping = true;
-                goalButton.disabled = true;
-
-                try {
-                    const response = await fetch('/api/suggest-goal', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ session_id: sessionId }),
-                    });
-
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                    const data = await response.json();
-                    appendMessage('assistant', data.formatted_message);
-                } catch (error) {
-                    console.error('Ошибка:', error);
-                    appendMessage('assistant', '⚠️ Произошла ошибка при подборе цели. Попробуйте еще раз.');
-                } finally {
-                    isTyping = false;
-                    goalButton.disabled = false;
-                }
-            }
-
-            // Обработчики событий
-            chatForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                const message = chatInput.value.trim();
-                if (message && !isTyping) {
-                    sendMessage(message);
-                }
-            });
-
-            analyzeButton.addEventListener('click', analyzeTransactions);
-            goalButton.addEventListener('click', suggestGoal);
-
-            // Быстрые кнопки
-            quickButtons.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const message = this.getAttribute('data-message');
-                    if (message && !isTyping) {
-                        sendMessage(message);
-                    }
-                });
-            });
-
-            // Enter для отправки, Shift+Enter для новой строки
-            chatInput.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    chatForm.dispatchEvent(new Event('submit'));
-                }
-            });
-
-            // Приветственное сообщение
-            setTimeout(() => {
-                appendMessage('assistant',
-                    'Сәлеметсіз бе! Я Zaman AI, ваш персональный финансовый друг.\n\n' +
-                    'Я здесь не только для рекомендаций по продуктам, но и чтобы помочь вам чувствовать себя увереннее в финансовых вопросах.\n\n' +
-                    '💡 Начните с кнопки "📊 Загрузить выписку", и я проанализирую вашу ситуацию.\n\n' +
-                    'Или выберите один из быстрых вопросов ниже ⬇️'
-                );
-            }, 500);
-        });
+        setTimeout(() => { appendMessage('assistant', '**Сәлеметсіз бе!** Я Zaman AI, ваш персональный финансовый друг. 🤝\n\nЧтобы я мог дать вам по-настоящему полезный совет, начните с нажатия на кнопку **"📊 Загрузить выписку"**.\n\nИли выберите один из быстрых вопросов ниже 👇', true); console.log('✅ Приветственное сообщение показано'); }, 500);
+        console.log('✅ Все обработчики установлены');
+    });
     </script>
 </body>
-
 </html>
