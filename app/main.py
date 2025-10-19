@@ -1,24 +1,26 @@
+"""
+Полный API роутер для Zaman Bank
+Поддерживает все эндпоинты OpenAI-совместимого API
+"""
+
 import uvicorn
 import webbrowser
 import httpx
 import chromadb
 import json
 import os
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
 import threading
 from datetime import datetime
-from goals_habits import GoalsHabitsManager
+import random
 
 load_dotenv()
-
-# Инициализируем менеджер целей
-goals_manager = GoalsHabitsManager()
 
 # --- КОНФИГУРАЦИЯ ---
 API_KEY = os.getenv("API_KEY")
@@ -27,7 +29,11 @@ LLM_MODEL = "gpt-4o-mini"
 EMBEDDING_MODEL = "text-embedding-3-small"
 
 # --- FastAPI ---
-app = FastAPI(title="Zaman Bank AI Assistant Backend")
+app = FastAPI(
+    title="Zaman Bank AI Assistant API",
+    description="Полный API роутер с поддержкой всех OpenAI эндпоинтов",
+    version="1.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,12 +43,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-INDEX_HTML_PATH = "./static/index.html"
-CHAT_HTML_PATH = "./static/chat.html"
+app.mount("/static", StaticFiles(directory="../static"), name="static")
+INDEX_HTML_PATH = "../static/index.html"
+CHAT_HTML_PATH = "../static/chat.html"
 
 USER_STATE_CACHE: Dict[str, Dict[str, Any]] = {}
-http_client = httpx.AsyncClient(timeout=60.0)
+http_client = httpx.AsyncClient(timeout=120.0)
 
 # --- ChromaDB ---
 try:
@@ -54,23 +60,21 @@ except Exception as e:
     collection = None
 
 
-# --- ЗАГРУЗКА ДАННЫХ ---
+# ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+
 def load_json_safe(filepath: str, default: Any = None) -> Any:
-    """Безопасная загрузка JSON с обработкой ошибок"""
+    """Безопасная загрузка JSON"""
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
-    except FileNotFoundError:
-        print(f"⚠️ Файл не найден: {filepath}")
-        return default
-    except json.JSONDecodeError as e:
-        print(f"⚠️ Ошибка JSON в {filepath}: {e}")
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"⚠️ Ошибка загрузки {filepath}: {e}")
         return default
 
 
 def load_personalized_client_context() -> str:
     """Загружает профиль клиента"""
-    data = load_json_safe("data/zaman_personalized_rag_data.json", [])
+    data = load_json_safe("../data/zaman_personalized_rag_data.json", [])
     if not data:
         return "Информация о клиенте недоступна."
     
@@ -82,8 +86,6 @@ def load_personalized_client_context() -> str:
         return (
             f"Клиент: {details.get('name')}, {details.get('age')} лет, {details.get('city')}. "
             f"Статус: {details.get('status')}. "
-            f"Текущий продукт: {details.get('current_product')}. "
-            f"Средний баланс: {details.get('avg_monthly_balance_kzt')} KZT. "
             f"Ежемесячный доход: {summary.get('monthly_salary_in_kzt')} KZT. "
             f"Платежи по займам: {summary.get('loan_payment_out_avg')} KZT/мес."
         )
@@ -93,7 +95,7 @@ def load_personalized_client_context() -> str:
 
 def load_benchmark_data() -> str:
     """Загружает бенчмарки"""
-    benchmarks = load_json_safe("data/zaman_benchmark_data.json", [])
+    benchmarks = load_json_safe("../data/zaman_benchmark_data.json", [])
     if not benchmarks:
         return "Сравнительная аналитика недоступна."
     
@@ -101,44 +103,32 @@ def load_benchmark_data() -> str:
     for item in benchmarks:
         top_spends = ", ".join([f"{k} ({v:.0f} KZT)" for k, v in item.get("top_spending_categories", {}).items()])
         goals = ", ".join(item.get("common_goals", []))
-        
         formatted.append(
             f"СЕГМЕНТ: {item['segment_name']} | "
             f"Средний доход: {item['avg_monthly_income_kzt']:.0f} KZT. "
             f"Топ-траты: {top_spends}. "
-            f"Цели: {goals}. "
             f"ИНСАЙТ: {item['motivational_insight']}"
         )
-    
     return "\n\n---\n\n".join(formatted)
 
 
-# --- Эмоциональный интеллект бота ---
 def detect_emotional_state(message: str) -> str:
-    """Определяет эмоциональное состояние из сообщения"""
-    stress_keywords = ["стресс", "переживаю", "волнуюсь", "тревожно", "нервничаю", "устал", "проблем"]
-    positive_keywords = ["спасибо", "отлично", "замечательно", "рад", "благодарен"]
-    
-    msg_lower = message.lower()
-    
-    if any(word in msg_lower for word in stress_keywords):
+    """Определяет эмоциональное состояние"""
+    stress_keywords = ["стресс", "переживаю", "волнуюсь", "тревожно", "устал", "проблем"]
+    if any(word in message.lower() for word in stress_keywords):
         return "stressed"
-    if any(word in msg_lower for word in positive_keywords):
-        return "positive"
-    
     return "neutral"
 
 
 def get_wellness_advice() -> str:
-    """Советы по борьбе со стрессом без трат"""
+    """Советы по wellness"""
     tips = [
-        "💚 Попробуйте бесплатную медитацию: приложение 'Insight Timer' предлагает тысячи бесплатных сессий на русском языке.",
-        "🚶 Прогулка в парке — доказанный способ снизить кортизол (гормон стресса) на 25%.",
-        "📝 Ведение финансового дневника помогает снизить тревожность на 30% (исследование Cambridge University).",
-        "☕ Встретьтесь с другом за чашкой чая дома — социальная поддержка важнее, чем дорогие развлечения.",
-        "🧘 Практика благодарности: каждый вечер записывайте 3 вещи, за которые вы благодарны сегодня.",
+        "💚 Попробуйте бесплатную медитацию: приложение 'Insight Timer'.",
+        "🚶 Прогулка в парке снижает стресс на 25%.",
+        "📝 Ведение финансового дневника снижает тревожность на 30%.",
+        "☕ Встретьтесь с другом за чашкой чая дома.",
+        "🧘 Практика благодарности: записывайте 3 вещи, за которые благодарны.",
     ]
-    import random
     return random.choice(tips)
 
 
@@ -149,34 +139,453 @@ print("👤 Профиль клиента загружен." if "недосту�
 print("📈 Бенчмарки загружены." if "недоступна" not in BENCHMARK_DATA else "⚠️ Бенчмарки НЕ загружены.")
 
 
-# --- Pydantic Models ---
-class AnalyzeRequest(BaseModel):
-    session_id: str
-
+# ==================== PYDANTIC MODELS ====================
 
 class ChatRequest(BaseModel):
     session_id: str
     message: str
 
-
 class ChatResponse(BaseModel):
     role: str
     content: str
 
+class AnalyzeRequest(BaseModel):
+    session_id: str
 
 class AnalyzeResponse(BaseModel):
     summary: str
     categories: Dict[str, float]
 
 
-# --- Анализ транзакций ---
-def analyze_mock_transactions() -> AnalyzeResponse:
-    transactions = load_json_safe("data/mock_transactions.json", [])
-    if not transactions:
-        return AnalyzeResponse(
-            summary="Ошибка: файл транзакций не найден.",
-            categories={}
+# ==================== УНИВЕРСАЛЬНЫЙ ПРОКСИ ====================
+
+async def proxy_request(
+    method: str,
+    path: str,
+    body: Optional[Dict] = None,
+    files: Optional[Dict] = None
+) -> Dict:
+    """Универсальная функция для проксирования запросов к API"""
+    url = f"{BASE_URL}{path}"
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    
+    try:
+        if method == "GET":
+            response = await http_client.get(url, headers=headers)
+        elif method == "POST":
+            if files:
+                response = await http_client.post(url, headers=headers, files=files, data=body)
+            else:
+                response = await http_client.post(url, headers=headers, json=body)
+        elif method == "DELETE":
+            response = await http_client.delete(url, headers=headers)
+        else:
+            raise HTTPException(status_code=405, detail="Method not allowed")
+        
+        response.raise_for_status()
+        return response.json()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== CHAT COMPLETIONS ====================
+
+@app.post("/v1/chat/completions")
+@app.post("/chat/completions")
+@app.post("/engines/{model}/chat/completions")
+@app.post("/openai/deployments/{model}/chat/completions")
+async def chat_completions(request: Request, model: Optional[str] = None):
+    """Chat Completion API"""
+    body = await request.json()
+    if model:
+        body["model"] = model
+    return await proxy_request("POST", "/v1/chat/completions", body)
+
+
+# ==================== COMPLETIONS ====================
+
+@app.post("/v1/completions")
+@app.post("/completions")
+@app.post("/engines/{model}/completions")
+@app.post("/openai/deployments/{model}/completions")
+async def completions(request: Request, model: Optional[str] = None):
+    """Text Completion API"""
+    body = await request.json()
+    if model:
+        body["model"] = model
+    return await proxy_request("POST", "/v1/completions", body)
+
+
+# ==================== EMBEDDINGS ====================
+
+@app.post("/v1/embeddings")
+@app.post("/embeddings")
+@app.post("/engines/{model}/embeddings")
+@app.post("/openai/deployments/{model}/embeddings")
+async def embeddings(request: Request, model: Optional[str] = None):
+    """Embeddings API"""
+    body = await request.json()
+    if model:
+        body["model"] = model
+    return await proxy_request("POST", "/v1/embeddings", body)
+
+
+# ==================== IMAGES ====================
+
+@app.post("/v1/images/generations")
+@app.post("/images/generations")
+async def image_generations(request: Request):
+    """Image Generation API"""
+    body = await request.json()
+    return await proxy_request("POST", "/v1/images/generations", body)
+
+
+@app.post("/v1/images/edits")
+@app.post("/images/edits")
+async def image_edits(
+    image: UploadFile = File(...),
+    prompt: str = Form(...),
+    mask: Optional[UploadFile] = File(None)
+):
+    """Image Edit API"""
+    files = {"image": image.file}
+    if mask:
+        files["mask"] = mask.file
+    data = {"prompt": prompt}
+    return await proxy_request("POST", "/v1/images/edits", data, files)
+
+
+# ==================== AUDIO ====================
+
+@app.post("/v1/audio/transcriptions")
+@app.post("/audio/transcriptions")
+async def audio_transcriptions(
+    file: UploadFile = File(...),
+    model: str = Form("whisper-1")
+):
+    """Audio Transcriptions API"""
+    files = {"file": file.file}
+    data = {"model": model}
+    return await proxy_request("POST", "/v1/audio/transcriptions", data, files)
+
+
+@app.post("/v1/audio/speech")
+@app.post("/audio/speech")
+async def audio_speech(request: Request):
+    """Audio Speech (TTS) API"""
+    body = await request.json()
+    return await proxy_request("POST", "/v1/audio/speech", body)
+
+
+# ==================== MODERATIONS ====================
+
+@app.post("/v1/moderations")
+@app.post("/moderations")
+async def moderations(request: Request):
+    """Moderations API"""
+    body = await request.json()
+    return await proxy_request("POST", "/v1/moderations", body)
+
+
+# ==================== FILES ====================
+
+@app.post("/v1/files")
+@app.post("/files")
+async def create_file(file: UploadFile = File(...), purpose: str = Form(...)):
+    """Create File"""
+    files = {"file": file.file}
+    data = {"purpose": purpose}
+    return await proxy_request("POST", "/v1/files", data, files)
+
+
+@app.get("/v1/files")
+@app.get("/files")
+async def list_files():
+    """List Files"""
+    return await proxy_request("GET", "/v1/files")
+
+
+@app.get("/v1/files/{file_id}")
+@app.get("/files/{file_id}")
+async def get_file(file_id: str):
+    """Get File"""
+    return await proxy_request("GET", f"/v1/files/{file_id}")
+
+
+@app.delete("/v1/files/{file_id}")
+@app.delete("/files/{file_id}")
+async def delete_file(file_id: str):
+    """Delete File"""
+    return await proxy_request("DELETE", f"/v1/files/{file_id}")
+
+
+@app.get("/v1/files/{file_id}/content")
+@app.get("/files/{file_id}/content")
+async def get_file_content(file_id: str):
+    """Get File Content"""
+    return await proxy_request("GET", f"/v1/files/{file_id}/content")
+
+
+# ==================== BATCHES ====================
+
+@app.post("/v1/batches")
+@app.post("/batches")
+async def create_batch(request: Request):
+    """Create Batch"""
+    body = await request.json()
+    return await proxy_request("POST", "/v1/batches", body)
+
+
+@app.get("/v1/batches")
+@app.get("/batches")
+async def list_batches():
+    """List Batches"""
+    return await proxy_request("GET", "/v1/batches")
+
+
+@app.get("/v1/batches/{batch_id}")
+@app.get("/batches/{batch_id}")
+async def retrieve_batch(batch_id: str):
+    """Retrieve Batch"""
+    return await proxy_request("GET", f"/v1/batches/{batch_id}")
+
+
+# ==================== FINE-TUNING ====================
+
+@app.post("/v1/fine_tuning/jobs")
+@app.post("/fine_tuning/jobs")
+async def create_fine_tuning_job(request: Request):
+    """Create Fine-Tuning Job (Enterprise)"""
+    body = await request.json()
+    return await proxy_request("POST", "/v1/fine_tuning/jobs", body)
+
+
+@app.get("/v1/fine_tuning/jobs")
+@app.get("/fine_tuning/jobs")
+async def list_fine_tuning_jobs():
+    """List Fine-Tuning Jobs (Enterprise)"""
+    return await proxy_request("GET", "/v1/fine_tuning/jobs")
+
+
+@app.post("/v1/fine_tuning/jobs/{job_id}/cancel")
+@app.post("/fine_tuning/jobs/{job_id}/cancel")
+async def cancel_fine_tuning_job(job_id: str):
+    """Cancel Fine-Tuning Job (Enterprise)"""
+    return await proxy_request("POST", f"/v1/fine_tuning/jobs/{job_id}/cancel")
+
+
+# ==================== ASSISTANTS ====================
+
+@app.get("/v1/assistants")
+@app.get("/assistants")
+async def get_assistants():
+    """Get Assistants"""
+    return await proxy_request("GET", "/v1/assistants")
+
+
+@app.post("/v1/assistants")
+@app.post("/assistants")
+async def create_assistant(request: Request):
+    """Create Assistant"""
+    body = await request.json()
+    return await proxy_request("POST", "/v1/assistants", body)
+
+
+@app.delete("/v1/assistants/{assistant_id}")
+@app.delete("/assistants/{assistant_id}")
+async def delete_assistant(assistant_id: str):
+    """Delete Assistant"""
+    return await proxy_request("DELETE", f"/v1/assistants/{assistant_id}")
+
+
+# ==================== THREADS ====================
+
+@app.post("/v1/threads")
+@app.post("/threads")
+async def create_thread(request: Request):
+    """Create Thread"""
+    body = await request.json()
+    return await proxy_request("POST", "/v1/threads", body)
+
+
+@app.get("/v1/threads/{thread_id}")
+@app.get("/threads/{thread_id}")
+async def get_thread(thread_id: str):
+    """Get Thread"""
+    return await proxy_request("GET", f"/v1/threads/{thread_id}")
+
+
+@app.post("/v1/threads/{thread_id}/messages")
+@app.post("/threads/{thread_id}/messages")
+async def add_messages(thread_id: str, request: Request):
+    """Add Messages to Thread"""
+    body = await request.json()
+    return await proxy_request("POST", f"/v1/threads/{thread_id}/messages", body)
+
+
+@app.get("/v1/threads/{thread_id}/messages")
+@app.get("/threads/{thread_id}/messages")
+async def get_messages(thread_id: str):
+    """Get Messages from Thread"""
+    return await proxy_request("GET", f"/v1/threads/{thread_id}/messages")
+
+
+@app.post("/v1/threads/{thread_id}/runs")
+@app.post("/threads/{thread_id}/runs")
+async def run_thread(thread_id: str, request: Request):
+    """Run Thread"""
+    body = await request.json()
+    return await proxy_request("POST", f"/v1/threads/{thread_id}/runs", body)
+
+
+# ==================== RERANK ====================
+
+@app.post("/v1/rerank")
+@app.post("/v2/rerank")
+@app.post("/rerank")
+async def rerank(request: Request):
+    """Rerank API"""
+    body = await request.json()
+    return await proxy_request("POST", "/v1/rerank", body)
+
+
+# ==================== VECTOR STORES ====================
+
+@app.post("/v1/vector_stores")
+@app.post("/vector_stores")
+async def create_vector_store(request: Request):
+    """Create Vector Store"""
+    body = await request.json()
+    return await proxy_request("POST", "/v1/vector_stores", body)
+
+
+@app.post("/v1/vector_stores/{vector_store_id}/search")
+@app.post("/vector_stores/{vector_store_id}/search")
+async def search_vector_store(vector_store_id: str, request: Request):
+    """Search Vector Store"""
+    body = await request.json()
+    return await proxy_request("POST", f"/v1/vector_stores/{vector_store_id}/search", body)
+
+
+# ==================== UTILS ====================
+
+@app.post("/utils/token_counter")
+async def token_counter(request: Request):
+    """Token Counter Utility"""
+    body = await request.json()
+    return await proxy_request("POST", "/utils/token_counter", body)
+
+
+@app.post("/utils/transform_request")
+async def transform_request(request: Request):
+    """Transform Request Utility"""
+    body = await request.json()
+    return await proxy_request("POST", "/utils/transform_request", body)
+
+
+# ==================== WEBSOCKET ====================
+
+@app.websocket("/v1/realtime")
+@app.websocket("/realtime")
+async def websocket_endpoint(websocket: WebSocket):
+    """WebSocket для realtime коммуникации"""
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Echo: {data}")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+
+
+# ==================== ZAMAN BANK CUSTOM ENDPOINTS ====================
+
+async def get_embedding(text: str) -> List[float]:
+    """Получает эмбеддинг"""
+    try:
+        response = await http_client.post(
+            f"{BASE_URL}/v1/embeddings",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json={"input": [text], "model": EMBEDDING_MODEL}
         )
+        response.raise_for_status()
+        return response.json()['data'][0]['embedding']
+    except Exception as e:
+        print(f"Ошибка эмбеддинга: {e}")
+        return []
+
+
+def query_vector_db(embedding: List[float]) -> str:
+    """Ищет в ChromaDB"""
+    if not collection or not embedding:
+        return "База знаний недоступна."
+    results = collection.query(query_embeddings=[embedding], n_results=3)
+    return "\n---\n".join(results['documents'][0])
+
+
+async def get_llm_response(session_id: str, user_message: str) -> str:
+    """Главная функция LLM с RAG"""
+    user_context = USER_STATE_CACHE.get(session_id, {}).get(
+        "summary", 
+        "Финансовый анализ не проведен."
+    )
+    
+    emotional_state = detect_emotional_state(user_message)
+    wellness_tip = ""
+    if emotional_state == "stressed":
+        wellness_tip = f"\n\n**🌿 Совет:**\n{get_wellness_advice()}"
+    
+    query_embedding = await get_embedding(f"{user_message}. Контекст: {user_context}")
+    retrieved_docs = query_vector_db(query_embedding)
+    
+    MASTER_PROMPT = f"""
+Ты — Zaman, персональный AI-ассистент исламского банка.
+
+не используй Bold или Italic в ответах.
+
+КОНТЕКСТ КЛИЕНТА:
+{user_context}
+
+СРАВНИТЕЛЬНАЯ АНАЛИТИКА:
+{BENCHMARK_DATA}
+
+БАЗА ЗНАНИЙ:
+{retrieved_docs}
+
+ЭМОЦИОНАЛЬНОЕ СОСТОЯНИЕ: {emotional_state}
+
+Ответь на сообщение клиента, учитывая его ситуацию и продукты банка.
+"""
+    
+    try:
+        response = await http_client.post(
+            f"{BASE_URL}/v1/chat/completions",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json={
+                "model": LLM_MODEL,
+                "messages": [
+                    {"role": "system", "content": MASTER_PROMPT},
+                    {"role": "user", "content": user_message}
+                ],
+                "temperature": 0.8,
+                "max_tokens": 600
+            }
+        )
+        response.raise_for_status()
+        ai_response = response.json()['choices'][0]['message']['content']
+        return ai_response + wellness_tip
+    except Exception as e:
+        print(f"Ошибка LLM: {e}")
+        return "Произошла ошибка. Попробуйте позже."
+
+
+def analyze_mock_transactions() -> AnalyzeResponse:
+    """Анализ транзакций"""
+    transactions = load_json_safe("../data/mock_transactions.json", [])
+    if not transactions:
+        return AnalyzeResponse(summary="Ошибка: файл транзакций не найден.", categories={})
     
     categories: Dict[str, float] = {}
     total_income = 0
@@ -198,118 +607,12 @@ def analyze_mock_transactions() -> AnalyzeResponse:
         f"Основные траты: " + ", ".join([f"{k} ({v:.0f} KZT)" for k, v in list(sorted_categories.items())[:3]])
     )
     
-    full_context = (
-        f"СТАТИЧЕСКИЙ ПРОФИЛЬ: {STATIC_CLIENT_PROFILE}\n\n"
-        f"ДИНАМИЧЕСКИЙ АНАЛИЗ: {dynamic_summary}"
-    )
+    full_context = f"СТАТИЧЕСКИЙ ПРОФИЛЬ: {STATIC_CLIENT_PROFILE}\n\nДИНАМИКА: {dynamic_summary}"
     
     return AnalyzeResponse(summary=full_context, categories=sorted_categories)
 
 
-# --- RAG ---
-async def get_embedding(text: str) -> List[float]:
-    try:
-        response = await http_client.post(
-            f"{BASE_URL}/v1/embeddings",
-            headers={"Authorization": f"Bearer {API_KEY}"},
-            json={"input": [text], "model": EMBEDDING_MODEL}
-        )
-        response.raise_for_status()
-        return response.json()['data'][0]['embedding']
-    except Exception as e:
-        print(f"Ошибка эмбеддинга: {e}")
-        return []
-
-
-def query_vector_db(embedding: List[float]) -> str:
-    if not collection or not embedding:
-        return "База знаний недоступна."
-    
-    results = collection.query(query_embeddings=[embedding], n_results=3)
-    return "\n---\n".join(results['documents'][0])
-
-
-# --- LLM Response ---
-async def get_llm_response(session_id: str, user_message: str) -> str:
-    user_context = USER_STATE_CACHE.get(session_id, {}).get(
-        "summary", 
-        "Финансовый анализ не проведен. Попросите загрузить выписку."
-    )
-    
-    # Определяем эмоциональное состояние
-    emotional_state = detect_emotional_state(user_message)
-    
-    # Если клиент в стрессе, добавляем совет по wellness
-    wellness_tip = ""
-    if emotional_state == "stressed":
-        wellness_tip = f"\n\n**🌿 Совет по заботе о себе:**\n{get_wellness_advice()}"
-    
-    # RAG
-    query_embedding = await get_embedding(f"{user_message}. Контекст: {user_context}")
-    retrieved_docs = query_vector_db(query_embedding)
-    
-    # Текущее время
-    current_time = datetime.now().strftime("%H:%M, %d.%m.%Y")
-    
-    MASTER_PROMPT = f"""
-Ты — Zaman, персональный AI-ассистент исламского банка. Твоя миссия — быть настоящим финансовым другом клиента.
-
-**ПРИНЦИПЫ ОБЩЕНИЯ:**
-1. **Эмпатия прежде всего** — если клиент переживает, сначала поддержи его эмоционально, потом говори о финансах.
-2. **Никогда не используй Bold или Italic** — общайся естественно, как живой человек.
-3. **Будь проактивным** — не жди вопросов, предлагай решения на основе данных.
-4. **Говори на языке клиента** — избегай банковского жаргона, объясняй простыми словами.
-
-**ТЕКУЩИЙ КОНТЕКСТ КЛИЕНТА:**
-{user_context}
-
-**СРАВНИТЕЛЬНАЯ АНАЛИТИКА (для мотивации):**
-{BENCHMARK_DATA}
-
-**БАЗА ЗНАНИЙ О ПРОДУКТАХ:**
-{retrieved_docs}
-
-**ЭМОЦИОНАЛЬНОЕ СОСТОЯНИЕ КЛИЕНТА:** {emotional_state}
-
-**ТЕКУЩЕЕ ВРЕМЯ:** {current_time}
-
-**ЗАДАЧА:**
-Ответь на сообщение клиента, учитывая:
-- Его финансовую ситуацию
-- Эмоциональное состояние
-- Сравнительную аналитику (мотивируй, сравнивая с похожими клиентами)
-- Продукты банка (предлагай, где уместно)
-- Принципы исламского финансирования (объясняй просто)
-
-Если клиент в стрессе, обязательно предложи способ справиться без лишних трат.
-"""
-    
-    try:
-        response = await http_client.post(
-            f"{BASE_URL}/v1/chat/completions",
-            headers={"Authorization": f"Bearer {API_KEY}"},
-            json={
-                "model": LLM_MODEL,
-                "messages": [
-                    {"role": "system", "content": MASTER_PROMPT},
-                    {"role": "user", "content": user_message}
-                ],
-                "temperature": 0.8,  # Повышена для более "человечных" ответов
-                "max_tokens": 600
-            }
-        )
-        response.raise_for_status()
-        ai_response = response.json()['choices'][0]['message']['content']
-        
-        # Добавляем wellness совет, если нужно
-        return ai_response + wellness_tip
-        
-    except Exception as e:
-        print(f"Ошибка LLM: {e}")
-        return "Извините, возникла техническая проблема. Попробуйте еще раз через минуту."
-
-
-# --- ENDPOINTS ---
+# ==================== ФРОНТЕНД ====================
 
 @app.get("/", include_in_schema=False)
 def serve_main_frontend():
@@ -327,37 +630,32 @@ def serve_chat_frontend():
 
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 async def analyze_transactions_endpoint(request: AnalyzeRequest):
-    print(f"Анализ для {request.session_id}")
     response = analyze_mock_transactions()
-    
     if request.session_id not in USER_STATE_CACHE:
         USER_STATE_CACHE[request.session_id] = {}
     USER_STATE_CACHE[request.session_id]["summary"] = response.summary
-    
     return response
 
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_with_assistant(request: ChatRequest):
-    print(f"[{request.session_id}] {request.message}")
-    
     if not collection:
         raise HTTPException(status_code=500, detail="База знаний не загружена")
-    
     ai_response = await get_llm_response(request.session_id, request.message)
-    
     return ChatResponse(role="assistant", content=ai_response)
 
 
-# --- ЗАПУСК ---
+# ==================== ЗАПУСК ====================
+
 if __name__ == "__main__":
     SERVER_URL = "http://localhost:8000"
     
     def start_server():
         uvicorn.run(app, host="0.0.0.0", port=8000)
     
-    print(f"✅ Zaman AI запущен: {SERVER_URL}")
-    print("🌐 Открываем браузер...")
+    print(f"✅ Zaman AI с полным API роутером запущен: {SERVER_URL}")
+    print(f"📚 Документация API: {SERVER_URL}/docs")
+    print(f"🌐 Открываем браузер...")
     
     threading.Timer(1.5, lambda: webbrowser.open(SERVER_URL)).start()
     start_server()
